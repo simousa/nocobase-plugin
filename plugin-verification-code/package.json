@@ -1,0 +1,18 @@
+{
+  "name": "@simo/plugin-verification-code",
+  "version": "0.1.0",
+  "displayName": "Verification code (CAPTCHA)",
+  "displayName.zh-CN": "验证码",
+  "description": "Locally generated CAPTCHA for sign-in, sign-up, forgot-password and public form submissions. Prevents bots from batch submitting data.",
+  "description.zh-CN": "本地生成的图片/算术验证码，可用于登录、注册、忘记密码与公开表单提交，防范爬虫批量提交数据。",
+  "main": "dist/server/index.js",
+  "dependencies": {
+    "svg-captcha": "^1.4.0"
+  },
+  "peerDependencies": {
+    "@nocobase/client": "2.x",
+    "@nocobase/client-v2": "2.x",
+    "@nocobase/server": "2.x",
+    "@nocobase/test": "2.x"
+  }
+}
