@@ -1,0 +1,19 @@
+{
+  "name": "@simo/plugin-import-export-enhancement",
+  "version": "0.1.0",
+  "displayName": "Import/Export Enhancement",
+  "displayName.zh-CN": "导入导出增强",
+  "description": "Enhanced import/export for table blocks: custom fields, export scopes, and append/update/overwrite import modes.",
+  "description.zh-CN": "表格区块导入导出增强：自定义字段、导出范围选择，以及追加/更新/覆盖三种导入模式。",
+  "main": "dist/server/index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "xlsx": "^0.20.3"
+  },
+  "peerDependencies": {
+    "@nocobase/client": "2.x",
+    "@nocobase/client-v2": "2.x",
+    "@nocobase/server": "2.x",
+    "@nocobase/test": "2.x"
+  }
+}
