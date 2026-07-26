@@ -8,13 +8,14 @@
  */
 
 module.exports = {
-  "@nocobase/flow-engine": "2.1.30",
-  "@nocobase/client": "2.1.30",
   "react": "18.3.1",
-  "react-dom": "18.3.1",
+  "@nocobase/client": "2.1.30",
+  "@formily/react": "2.3.7",
   "antd": "5.24.2",
-  "@nocobase/client-v2": "2.1.30",
-  "@nocobase/server": "2.1.30",
   "@ant-design/icons": "5.6.1",
-  "@nocobase/database": "2.1.30"
+  "@nocobase/flow-engine": "2.1.30",
+  "react-dom": "18.3.1",
+  "@nocobase/client-v2": "2.1.30",
+  "@nocobase/plugin-verification": "2.1.30",
+  "@nocobase/server": "2.1.30"
 };

@@ -18,7 +18,10 @@ const URL_RULES: Array<{ match: RegExp; scene: keyof PublicConfig }> = [
   { match: /auth:signIn(\?|$)/, scene: 'signIn' },
   { match: /auth:signUp(\?|$)/, scene: 'signUp' },
   { match: /auth:lostPassword(\?|$)/, scene: 'lostPassword' },
-  { match: /publicForms:publicSubmit/, scene: 'publicForms' },
+  // Public-form submissions use the collection resource name, e.g.
+  // `users:publicSubmit` (NOT `publicForms:publicSubmit` — the public-forms
+  // plugin rewrites the action server-side). Match any `<resource>:publicSubmit`.
+  { match: /:publicSubmit(\?|$)/, scene: 'publicForms' },
 ];
 
 /** Auth pages that get an inline captcha widget injected into the form. */

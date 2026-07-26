@@ -104,7 +104,9 @@ class CaptchaService {
           mathOperator: opts.mathOperator,
           noise: opts.noise,
           color: opts.color,
-          background: opts.background,
+          // svg-captcha forces color=true whenever a background is set, so
+          // drop the background when colorful characters are disabled.
+          background: opts.color ? opts.background : void 0,
           width: opts.width,
           height: opts.height,
           fontSize: opts.fontSize
@@ -117,7 +119,7 @@ class CaptchaService {
         ignoreChars,
         noise: opts.noise,
         color: opts.color,
-        background: opts.background,
+        background: opts.color ? opts.background : void 0,
         width: opts.width,
         height: opts.height,
         fontSize: opts.fontSize
@@ -130,7 +132,7 @@ class CaptchaService {
       ignoreChars,
       noise: opts.noise,
       color: opts.color,
-      background: opts.background,
+      background: opts.color ? opts.background : void 0,
       width: opts.width,
       height: opts.height,
       fontSize: opts.fontSize
