@@ -11,7 +11,11 @@ export class ExportEnhancedActionModel extends ActionModel {
   static scene = ActionSceneEnum.collection;
 
   defaultProps: ButtonProps = {
-    children: tExpr('Export (Enhanced)'),
+    // NOTE: must be `title` (not `children`) — the core buttonSettings flow writes the
+    // user-configured title to props.title, and renderButton() prefers props.children,
+    // so a hardcoded `children` would permanently override the configured title.
+    title: tExpr('Export (Enhanced)'),
+    icon: 'CloudDownloadOutlined',
   };
 }
 
@@ -39,13 +43,20 @@ ExportEnhancedActionModel.registerFlow({
         );
         const pk = resolvePrimaryKey(collection);
 
+        // Fields configured via the "Exportable fields" menu item (x-action-settings.exportSettings).
+        const configured = (ctx.model?.schema?.['x-action-settings']?.exportSettings || [])
+          .map((f: any) => f?.dataIndex?.[0])
+          .filter(Boolean);
+        const defaultSelected = configured.length ? configured : options.map((o) => o.dataIndex);
+
         ctx.viewer.dialog({
-          title: ctx.t('Export (Enhanced)'),
+          title: ctx.model?.getTitle?.() || ctx.t('Export (Enhanced)'),
           width: 560,
           content: (view: any) => (
             <ExportDialog
               options={options}
               pk={pk}
+              defaultSelected={defaultSelected}
               hasSelection={(resource.getSelectedRows?.() || []).length > 0}
               onCancel={() => view.close()}
               onExport={async (columns: ColumnOption[], scope: ExportScope) => {
@@ -80,18 +91,20 @@ ExportEnhancedActionModel.registerFlow({
 function ExportDialog({
   options,
   pk,
+  defaultSelected,
   hasSelection,
   onExport,
   onCancel,
 }: {
   options: ColumnOption[];
   pk: string;
+  defaultSelected?: string[];
   hasSelection: boolean;
   onExport: (columns: ColumnOption[], scope: ExportScope) => Promise<void>;
   onCancel: () => void;
 }) {
   const t = useT();
-  const [selected, setSelected] = useState<string[]>(options.map((o) => o.dataIndex));
+  const [selected, setSelected] = useState<string[]>(defaultSelected ?? options.map((o) => o.dataIndex));
   const [scope, setScope] = useState<ExportScope>('filtered');
   const [loading, setLoading] = useState(false);
 
@@ -124,7 +137,7 @@ function ExportDialog({
         <span style={{ fontWeight: 500 }}>{t('Export fields')}</span>
         <Space>
           <a onClick={() => setSelected(options.map((o) => o.dataIndex))}>{t('Select all')}</a>
-          <a onClick={() => setSelected([pk])}>{t('Clear')}</a>
+          <a onClick={() => setSelected([])}>{t('Deselect all')}</a>
         </Space>
       </div>
       <Checkbox.Group

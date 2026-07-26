@@ -1,25 +1,27 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Action,
   useAPIClient,
   useBlockRequestContext,
   useCollection,
   useCompile,
   useDataSourceKey,
 } from '@nocobase/client';
+import { useFieldSchema } from '@formily/react';
 import { Button, Checkbox, Divider, Modal, Radio, Space } from 'antd';
-import { CloudDownloadOutlined } from '@ant-design/icons';
 import { useT } from '../locale-react';
 import { buildColumnOptions, resolvePrimaryKey, saveBlob } from '../utils';
 
 type ExportScope = 'filtered' | 'all';
 
-export const ExportEnhancedAction: React.FC = () => {
+export const ExportEnhancedAction: React.FC<any> = (props) => {
   const t = useT();
   const api = useAPIClient();
   const compile = useCompile();
   const collection = useCollection();
   const dataSourceKey = useDataSourceKey();
   const blockCtx = useBlockRequestContext() as any;
+  const fieldSchema = useFieldSchema() as any;
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -30,13 +32,30 @@ export const ExportEnhancedAction: React.FC = () => {
     [collection, compile],
   );
   const pk = resolvePrimaryKey(collection);
-  const [selected, setSelected] = useState<string[]>([]);
-  const effectiveSelected = selected.length ? selected : options.map((o) => o.dataIndex);
+
+  // Fields configured via the "Exportable fields" menu item (x-action-settings.exportSettings).
+  const configuredIndexes = useMemo(
+    () =>
+      (fieldSchema?.['x-action-settings']?.exportSettings || [])
+        .map((f: any) => f?.dataIndex?.[0])
+        .filter(Boolean),
+    [fieldSchema],
+  );
+
+  const [selected, setSelected] = useState<string[]>(() =>
+    configuredIndexes.length ? configuredIndexes : options.map((o) => o.dataIndex),
+  );
+
+  const columns = useMemo(
+    () => options.filter((o) => selected.includes(o.dataIndex)).map(({ dataIndex, title }) => ({ dataIndex, title })),
+    [options, selected],
+  );
+
+  const label = fieldSchema?.title
+    ? String(compile(fieldSchema.title) || t('Export (Enhanced)'))
+    : t('Export (Enhanced)');
 
   const handleExport = async () => {
-    const columns = options
-      .filter((o) => effectiveSelected.includes(o.dataIndex))
-      .map(({ dataIndex, title }) => ({ dataIndex, title }));
     if (!columns.length) return;
     setLoading(true);
     try {
@@ -60,18 +79,19 @@ export const ExportEnhancedAction: React.FC = () => {
 
   return (
     <>
-      <Button icon={<CloudDownloadOutlined />} onClick={() => setOpen(true)}>
-        {t('Export (Enhanced)')}
-      </Button>
+      {/* Render through NocoBase's Action so the schema toolbar (x-toolbar/x-settings:
+          edit button, linkage rules, delete) shows up in UI config mode, and linkage
+          rules / icon / type edited via ButtonEditor take effect. */}
+      <Action {...props} icon={props?.icon || 'CloudDownloadOutlined'} title={label} onClick={() => setOpen(true)} />
       <Modal
-        title={t('Export (Enhanced)')}
+        title={label}
         open={open}
         width={560}
         onCancel={() => setOpen(false)}
         footer={
           <Space>
             <Button onClick={() => setOpen(false)}>{t('Cancel')}</Button>
-            <Button type="primary" loading={loading} onClick={handleExport}>
+            <Button type="primary" loading={loading} disabled={!columns.length} onClick={handleExport}>
               {t('Start export')}
             </Button>
           </Space>
@@ -87,11 +107,14 @@ export const ExportEnhancedAction: React.FC = () => {
         <Divider style={{ margin: '12px 0' }} />
         <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
           <span style={{ fontWeight: 500 }}>{t('Export fields')}</span>
-          <a onClick={() => setSelected(options.map((o) => o.dataIndex))}>{t('Select all')}</a>
+          <Space>
+            <a onClick={() => setSelected(options.map((o) => o.dataIndex))}>{t('Select all')}</a>
+            <a onClick={() => setSelected([])}>{t('Deselect all')}</a>
+          </Space>
         </div>
         <Checkbox.Group
           style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 260, overflow: 'auto' }}
-          value={effectiveSelected}
+          value={selected}
           onChange={(v) => setSelected(v as string[])}
           options={options.map((o) => ({ label: o.title, value: o.dataIndex }))}
         />

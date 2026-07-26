@@ -1,26 +1,29 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Action,
   useAPIClient,
   useBlockRequestContext,
   useCollection,
   useCompile,
   useDataSourceKey,
 } from '@nocobase/client';
+import { useFieldSchema } from '@formily/react';
 import { Alert, Button, Checkbox, Divider, Modal, Radio, Space, Upload, message } from 'antd';
 import type { UploadFile } from 'antd';
-import { CloudUploadOutlined, InboxOutlined } from '@ant-design/icons';
+import { InboxOutlined } from '@ant-design/icons';
 import { useT } from '../locale-react';
 import { buildColumnOptions, resolvePrimaryKey, saveBlob } from '../utils';
 
 type ImportMode = 'append' | 'update' | 'overwrite';
 
-export const ImportEnhancedAction: React.FC = () => {
+export const ImportEnhancedAction: React.FC<any> = (props) => {
   const t = useT();
   const api = useAPIClient();
   const compile = useCompile();
   const collection = useCollection();
   const dataSourceKey = useDataSourceKey();
   const blockCtx = useBlockRequestContext() as any;
+  const fieldSchema = useFieldSchema() as any;
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,14 +36,23 @@ export const ImportEnhancedAction: React.FC = () => {
     [collection, compile],
   );
   const pk = resolvePrimaryKey(collection);
-  const [selected, setSelected] = useState<string[]>([]);
-  const effectiveSelected = selected.length ? selected : options.map((o) => o.dataIndex);
-  const columns = useMemo(
+
+  // Fields configured via the "Importable fields" menu item (x-action-settings.importSettings).
+  const configuredIndexes = useMemo(
     () =>
-      options
-        .filter((o) => effectiveSelected.includes(o.dataIndex))
-        .map(({ dataIndex, title }) => ({ dataIndex, title })),
-    [options, effectiveSelected],
+      (fieldSchema?.['x-action-settings']?.importSettings || [])
+        .map((f: any) => f?.dataIndex?.[0])
+        .filter(Boolean),
+    [fieldSchema],
+  );
+
+  const [selected, setSelected] = useState<string[]>(() =>
+    configuredIndexes.length ? configuredIndexes : options.map((o) => o.dataIndex),
+  );
+
+  const columns = useMemo(
+    () => options.filter((o) => selected.includes(o.dataIndex)).map(({ dataIndex, title }) => ({ dataIndex, title })),
+    [options, selected],
   );
   const file = fileList[0]?.originFileObj as File | undefined;
   const headers = dataSourceKey && dataSourceKey !== 'main' ? { 'X-Data-Source': dataSourceKey } : undefined;
@@ -50,6 +62,10 @@ export const ImportEnhancedAction: React.FC = () => {
     update: t('Rows are matched by primary key ({{pk}}); only the imported columns are updated.', { pk }),
     overwrite: t('Records in the current filter scope are deleted first, then rows from the sheet are created.'),
   };
+
+  const label = fieldSchema?.title
+    ? String(compile(fieldSchema.title) || t('Import (Enhanced)'))
+    : t('Import (Enhanced)');
 
   const handleDownloadTemplate = async () => {
     if (!columns.length) return;
@@ -105,11 +121,12 @@ export const ImportEnhancedAction: React.FC = () => {
 
   return (
     <>
-      <Button icon={<CloudUploadOutlined />} onClick={() => setOpen(true)}>
-        {t('Import (Enhanced)')}
-      </Button>
+      {/* Render through NocoBase's Action so the schema toolbar (x-toolbar/x-settings:
+          edit button, linkage rules, delete) shows up in UI config mode, and linkage
+          rules / icon / type edited via ButtonEditor take effect. */}
+      <Action {...props} icon={props?.icon || 'CloudUploadOutlined'} title={label} onClick={() => setOpen(true)} />
       <Modal
-        title={t('Import (Enhanced)')}
+        title={label}
         open={open}
         width={640}
         onCancel={() => setOpen(false)}
@@ -139,6 +156,7 @@ export const ImportEnhancedAction: React.FC = () => {
           <span style={{ fontWeight: 500 }}>{t('Import fields')}</span>
           <Space>
             <a onClick={() => setSelected(options.map((o) => o.dataIndex))}>{t('Select all')}</a>
+            <a onClick={() => setSelected([])}>{t('Deselect all')}</a>
             <Button size="small" disabled={!columns.length} onClick={handleDownloadTemplate}>
               {t('Download template')}
             </Button>
@@ -146,7 +164,7 @@ export const ImportEnhancedAction: React.FC = () => {
         </div>
         <Checkbox.Group
           style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 200, overflow: 'auto' }}
-          value={effectiveSelected}
+          value={selected}
           onChange={(v) => setSelected(v as string[])}
           options={options.map((o) => ({ label: o.title, value: o.dataIndex }))}
         />

@@ -12,9 +12,11 @@ module.exports = {
   "@nocobase/client": "2.1.30",
   "react-i18next": "11.18.6",
   "@nocobase/flow-engine": "2.1.30",
+  "@formily/react": "2.3.7",
+  "@formily/antd-v5": "1.2.3",
+  "antd": "5.24.2",
   "@nocobase/client-v2": "2.1.30",
   "@nocobase/server": "2.1.30",
-  "antd": "5.24.2",
   "@ant-design/icons": "5.6.1",
   "@nocobase/utils": "2.1.30"
 };

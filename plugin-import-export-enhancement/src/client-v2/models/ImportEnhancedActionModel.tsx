@@ -12,7 +12,9 @@ export class ImportEnhancedActionModel extends ActionModel {
   static scene = ActionSceneEnum.collection;
 
   defaultProps: ButtonProps = {
-    children: tExpr('Import (Enhanced)'),
+    // NOTE: must be `title` (not `children`) — see ExportEnhancedActionModel for details.
+    title: tExpr('Import (Enhanced)'),
+    icon: 'CloudUploadOutlined',
   };
 }
 
@@ -40,13 +42,20 @@ ImportEnhancedActionModel.registerFlow({
         ).filter((o) => !o.isAssociation); // associations are not importable
         const pk = resolvePrimaryKey(collection);
 
+        // Fields configured via the "Importable fields" menu item (x-action-settings.importSettings).
+        const configured = (ctx.model?.schema?.['x-action-settings']?.importSettings || [])
+          .map((f: any) => f?.dataIndex?.[0])
+          .filter(Boolean);
+        const defaultSelected = configured.length ? configured : options.map((o) => o.dataIndex);
+
         ctx.viewer.dialog({
-          title: ctx.t('Import (Enhanced)'),
+          title: ctx.model?.getTitle?.() || ctx.t('Import (Enhanced)'),
           width: 640,
           content: (view: any) => (
             <ImportDialog
               options={options}
               pk={pk}
+              defaultSelected={defaultSelected}
               onCancel={() => view.close()}
               onDownloadTemplate={async (columns: ColumnOption[]) => {
                 const data = await resource.runAction('downloadImportTemplate', {
@@ -94,18 +103,20 @@ ImportEnhancedActionModel.registerFlow({
 function ImportDialog({
   options,
   pk,
+  defaultSelected,
   onDownloadTemplate,
   onImport,
   onCancel,
 }: {
   options: ColumnOption[];
   pk: string;
+  defaultSelected?: string[];
   onDownloadTemplate: (columns: ColumnOption[]) => Promise<void>;
   onImport: (columns: ColumnOption[], mode: ImportMode, file: File) => Promise<void>;
   onCancel: () => void;
 }) {
   const t = useT();
-  const [selected, setSelected] = useState<string[]>(options.map((o) => o.dataIndex));
+  const [selected, setSelected] = useState<string[]>(defaultSelected ?? options.map((o) => o.dataIndex));
   const [mode, setMode] = useState<ImportMode>('append');
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -147,6 +158,7 @@ function ImportDialog({
         <span style={{ fontWeight: 500 }}>{t('Import fields')}</span>
         <Space>
           <a onClick={() => setSelected(options.map((o) => o.dataIndex))}>{t('Select all')}</a>
+          <a onClick={() => setSelected([])}>{t('Deselect all')}</a>
           <Button size="small" disabled={!columns.length} onClick={() => onDownloadTemplate(columns)}>
             {t('Download template')}
           </Button>
