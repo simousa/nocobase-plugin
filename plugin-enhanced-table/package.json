@@ -1,6 +1,7 @@
 {
   "name": "@simo/plugin-enhanced-table",
   "version": "0.1.0",
+  "displayName": "Enhanced Table",
   "main": "dist/server/index.js",
   "dependencies": {},
   "peerDependencies": {
