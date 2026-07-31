@@ -1,7 +1,10 @@
 {
   "name": "@simo/plugin-enhanced-table",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "displayName": "Enhanced Table",
+  "displayName.zh-CN": "增强表格",
+  "description": "Enhanced table block with custom fields (sum, count, average, maximum, minimum); Drag the selection to view the statistics.",
+  "description.zh-CN": "增强表格区块：自定义字段的统计数据（求和、计数、平均值、最大值、最小值）；拖动选中区域即可查看统计数据。",
   "main": "dist/server/index.js",
   "dependencies": {},
   "peerDependencies": {

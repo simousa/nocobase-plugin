@@ -7,6 +7,10 @@ export class PluginEnhancedTableClientV2 extends Plugin {
         loader: () => import('./models/EnhancedTableBlockModel'),
       },
     });
+    // Register the per-field aggregation editor for use in flow settings uiSchema.
+    this.flowEngine.flowSettings.registerComponentLoaders({
+      FieldAggregationsEditor: () => import('./components/FieldAggregationsEditor'),
+    });
   }
 }
 

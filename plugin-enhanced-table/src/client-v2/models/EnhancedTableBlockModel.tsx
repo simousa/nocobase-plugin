@@ -4,6 +4,7 @@ import { TableBlockModel } from '@nocobase/client-v2';
 import type { Collection } from '@nocobase/flow-engine';
 import { tExpr } from '../locale';
 import { SelectionStatsView, StatKey } from '../components/SelectionStatsView';
+import type { FieldAggregation } from '../components/FieldAggregationsEditor';
 
 const NUMERIC_TYPES = new Set([
   'integer',
@@ -26,6 +27,8 @@ const STAT_LABELS: Record<StatKey, string> = {
   min: 'Min',
   count: 'Count',
 };
+
+type FooterAlign = 'left' | 'center' | 'right';
 
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
@@ -92,10 +95,21 @@ export class EnhancedTableBlockModel extends TableBlockModel {
     return STAT_ORDER.filter((s) => configured.includes(s));
   }
 
+  private getEnabledFieldAggregations(): FieldAggregation[] {
+    const configured: FieldAggregation[] = this.props.fieldAggregations || [];
+    return configured.filter((a) => a && a.field && a.stat && a.stat !== 'none');
+  }
+
+  private getFooterAlign(): FooterAlign {
+    const align = this.props.footerAlign as FooterAlign | undefined;
+    return align === 'center' || align === 'right' ? align : 'left';
+  }
+
   renderSummary(pageData: any[]) {
     if (this.props.showFooter === false) return null;
-    const stats = this.getEnabledStats();
-    if (!stats.length || !pageData?.length) return null;
+
+    const aggregations = this.getEnabledFieldAggregations();
+    if (!aggregations.length || !pageData?.length) return null;
 
     const cols: any[] = (this as any).columns?.value?.length
       ? (this as any).columns.value
@@ -106,61 +120,75 @@ export class EnhancedTableBlockModel extends TableBlockModel {
     const rowSelection = this.isRowSelectionEnabled();
     const leftAux = rowSelection ? null : this.getLeftAuxiliaryColumn();
     const hasLeading = rowSelection || !!leftAux;
+    const align = this.getFooterAlign();
 
-    // Precompute numeric column values once.
-    const columnValues: Record<string, number[]> = {};
-    cols.forEach((col) => {
-      const di = col?.dataIndex;
-      if (di && this.isNumericField(di)) {
-        const values: number[] = [];
+    // Precompute aggregated values for each configured field.
+    // For numeric stats (sum/average/max/min) we collect parsed numbers.
+    // For "count" we collect a 1 for every non-null value (COUNTA semantics),
+    // so it works on any field type, not just numeric columns.
+    const fieldValues: Record<string, number[]> = {};
+    aggregations.forEach(({ field, stat }) => {
+      const statKey = stat as StatKey;
+      const values: number[] = [];
+      if (statKey === 'count') {
         pageData.forEach((record) => {
-          const n = toNumber(getByPath(record, di));
+          const v = getByPath(record, field);
+          if (v !== null && v !== undefined && v !== '') values.push(1);
+        });
+      } else {
+        pageData.forEach((record) => {
+          const n = toNumber(getByPath(record, field));
           if (n !== null) values.push(n);
         });
-        columnValues[di] = values;
       }
+      fieldValues[field] = values;
+    });
+
+    let idx = 0;
+    let labelPlaced = false;
+    const cells: React.ReactNode[] = [];
+    const label = t('Summary');
+
+    if (hasLeading) {
+      cells.push(
+        <Table.Summary.Cell key="__leading__" index={idx++} align={align}>
+          <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</span>
+        </Table.Summary.Cell>,
+      );
+      labelPlaced = true;
+    }
+
+    cols.forEach((col, i) => {
+      const di = col?.dataIndex;
+      const fieldKey: string = Array.isArray(di) ? di.join('.') : di || '';
+      const agg = aggregations.find((a) => a.field === fieldKey || (di && a.field === di));
+      let content: React.ReactNode = null;
+      if (agg && agg.stat !== 'none') {
+        const statKey = agg.stat as StatKey;
+        const values = fieldValues[agg.field] || [];
+        const statLabel = t(STAT_LABELS[statKey]);
+        const value = formatNum(computeStat(statKey, values));
+        content = (
+          <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 11, opacity: 0.65, marginRight: 4 }}>{statLabel}</span>
+            {value}
+          </span>
+        );
+      } else if (!labelPlaced) {
+        // Place the row label in the first available non-aggregated column.
+        content = <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</span>;
+        labelPlaced = true;
+      }
+      cells.push(
+        <Table.Summary.Cell key={col?.key ?? di ?? i} index={idx++} align={align}>
+          {content}
+        </Table.Summary.Cell>,
+      );
     });
 
     return (
       <Table.Summary fixed>
-        {stats.map((stat) => {
-          const label = t(STAT_LABELS[stat]);
-          let idx = 0;
-          let labelPlaced = false;
-          const cells: React.ReactNode[] = [];
-
-          if (hasLeading) {
-            cells.push(
-              <Table.Summary.Cell key="__leading__" index={idx++}>
-                <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</span>
-              </Table.Summary.Cell>,
-            );
-            labelPlaced = true;
-          }
-
-          cols.forEach((col, i) => {
-            const di = col?.dataIndex;
-            const numeric = di && Object.prototype.hasOwnProperty.call(columnValues, di);
-            let content: React.ReactNode = null;
-            if (numeric) {
-              content = (
-                <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-                  {formatNum(computeStat(stat, columnValues[di]))}
-                </span>
-              );
-            } else if (!labelPlaced) {
-              content = <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</span>;
-              labelPlaced = true;
-            }
-            cells.push(
-              <Table.Summary.Cell key={col?.key ?? di ?? i} index={idx++} align="right">
-                {content}
-              </Table.Summary.Cell>,
-            );
-          });
-
-          return <Table.Summary.Row key={stat}>{cells}</Table.Summary.Row>;
-        })}
+        <Table.Summary.Row key="total">{cells}</Table.Summary.Row>
       </Table.Summary>
     );
   }
@@ -209,6 +237,52 @@ EnhancedTableBlockModel.registerFlow({
         ctx.model.setProps('showFooter', params.showFooter);
       },
     },
+    fieldAggregations: {
+      title: tExpr('Field aggregations'),
+      uiSchema: {
+        fieldAggregations: {
+          type: 'array',
+          title: tExpr('Field aggregations'),
+          'x-decorator': 'FormItem',
+          'x-component': 'FieldAggregationsEditor',
+          'x-component-props': {},
+          description: tExpr(
+            'Configure one aggregation per field. Only one summary row is rendered at the bottom.',
+          ),
+        },
+      },
+      defaultParams: {
+        fieldAggregations: [],
+      },
+      handler(ctx, params) {
+        ctx.model.setProps('fieldAggregations', params.fieldAggregations || []);
+      },
+    },
+    footerAlign: {
+      title: tExpr('Footer summary alignment'),
+      uiSchema: {
+        footerAlign: {
+          type: 'string',
+          title: tExpr('Footer summary alignment'),
+          'x-decorator': 'FormItem',
+          'x-component': 'Select',
+          'x-component-props': {
+            placeholder: tExpr('Select alignment'),
+          },
+          enum: [
+            { label: tExpr('Left'), value: 'left' },
+            { label: tExpr('Center'), value: 'center' },
+            { label: tExpr('Right'), value: 'right' },
+          ],
+        },
+      },
+      defaultParams: {
+        footerAlign: 'left',
+      },
+      handler(ctx, params) {
+        ctx.model.setProps('footerAlign', params.footerAlign || 'left');
+      },
+    },
     showSelectionStats: {
       title: tExpr('Show selection statistics'),
       uiMode: { type: 'switch', key: 'showSelectionStats' },
@@ -220,11 +294,11 @@ EnhancedTableBlockModel.registerFlow({
       },
     },
     stats: {
-      title: tExpr('Statistics to display'),
+      title: tExpr('Selection statistics to display'),
       uiSchema: {
         stats: {
           type: 'array',
-          title: tExpr('Statistics to display'),
+          title: tExpr('Selection statistics to display'),
           'x-decorator': 'FormItem',
           'x-component': 'Select',
           'x-component-props': {
