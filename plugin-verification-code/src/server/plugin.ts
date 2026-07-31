@@ -21,12 +21,64 @@ const DEFAULT_SETTINGS = {
   noise: 3,
   color: true,
   background: '#f2f3f5',
+  // ---- captcha image generation (controls the SVG output) ----
   width: 150,
   height: 50,
   fontSize: 50,
+  // ---- page layout (controls how the box looks on screen) ----
+  // layoutAuto: when true, the display box matches the captcha image's
+  //   original size (zero scaling) and the input box takes the remaining
+  //   width. When false, the input/display widths split by `inputRatio`.
+  // inputRatio: input box width as a percentage of the container (10-99);
+  //   the display box gets the rest. Only used when layoutAuto is false.
+  // inputHeight / displayHeight: independent pixel heights.
+  layoutAuto: true,
+  inputRatio: 60,
+  inputHeight: 40,
+  displayHeight: 44,
   expiresIn: 300,
   rateLimitPerMinute: 30,
 };
+
+// Legacy field names (pre-0.1.0) that map onto the new page-layout model.
+// Old verifiers may still store these in `options`; we migrate them on read.
+const LEGACY_LAYOUT_KEYS = [
+  'inputAuto',
+  'inputWidth',
+  'inputHeight',
+  'displayAuto',
+  'displayWidth',
+  'displayHeight',
+] as const;
+
+function clampInt(v: any, min: number, max: number, dflt: number): number {
+  const n = Number(v);
+  if (Number.isNaN(n)) return dflt;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+/**
+ * Convert legacy box-sizing fields into the new page-layout model.
+ * - If `layoutAuto` is already set on `opts`, the new model is in use — return as-is.
+ * - Otherwise derive from the old fields so existing verifiers keep working.
+ */
+function migrateLayout(opts: Record<string, any>): Record<string, any> {
+  if (opts.layoutAuto !== undefined) return opts;
+  const hasLegacy = LEGACY_LAYOUT_KEYS.some((k) => opts[k] !== undefined);
+  if (!hasLegacy) return opts;
+  const inputAuto = opts.inputAuto !== false;
+  const displayAuto = opts.displayAuto !== false;
+  const inputWidth = clampInt(opts.inputWidth, 40, 800, 220);
+  const displayWidth = clampInt(opts.displayWidth, 30, 800, 120);
+  const ratio = clampInt(Math.round((inputWidth / (inputWidth + displayWidth)) * 100), 10, 90, 60);
+  return {
+    ...opts,
+    layoutAuto: inputAuto && displayAuto,
+    inputRatio: ratio,
+    inputHeight: clampInt(opts.inputHeight, 20, 200, 40),
+    displayHeight: clampInt(opts.displayHeight, 30, 300, 44),
+  };
+}
 
 /**
  * Actions protected by captcha verification.
@@ -89,9 +141,10 @@ export class PluginVerificationCodeServer extends Plugin {
       config.enablePublicForms = config.enablePublicForms || !!opts.enablePublicForms;
     }
     if (appearance) {
+      const migrated = migrateLayout(appearance);
       for (const key of Object.keys(DEFAULT_SETTINGS)) {
         if (key.startsWith('enable')) continue; // scene switches already merged
-        if (appearance[key] !== undefined) config[key] = appearance[key];
+        if (migrated[key] !== undefined) config[key] = migrated[key];
       }
     }
     this.configCache = config;
@@ -160,11 +213,22 @@ export class PluginVerificationCodeServer extends Plugin {
          */
         getPublicConfig: async (ctx, next) => {
           const settings = await this.getImageCaptchaConfig();
+          // Normalize the image dimensions so the client gets safe, clamped
+          // values to size the display box in auto-fit mode.
+          const img = this.service.normalize(settings);
           ctx.body = {
             signIn: !!settings.enableSignIn,
             signUp: !!settings.enableSignUp,
             lostPassword: !!settings.enableLostPassword,
             publicForms: !!settings.enablePublicForms,
+            box: {
+              layoutAuto: settings.layoutAuto !== false,
+              inputRatio: clampInt(settings.inputRatio, 10, 90, 60),
+              inputHeight: clampInt(settings.inputHeight, 20, 200, 40),
+              displayHeight: clampInt(settings.displayHeight, 30, 300, 44),
+              imageWidth: img.width,
+              imageHeight: img.height,
+            },
           };
           await next();
         },

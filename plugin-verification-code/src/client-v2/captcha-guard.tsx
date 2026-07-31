@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { CaptchaBox } from './components/CaptchaBox';
+import { CaptchaBox, BoxSizeConfig } from './components/CaptchaBox';
 import { captchaState, requestCaptchaRefresh } from './captcha-state';
 import { openCaptchaModal } from './captcha-modal';
 
@@ -11,6 +11,7 @@ interface PublicConfig {
   signUp: boolean;
   lostPassword: boolean;
   publicForms: boolean;
+  box?: BoxSizeConfig;
 }
 
 /** API urls that require captcha and their scene keys. */
@@ -80,7 +81,7 @@ export function setupCaptchaGuard(app: any, t: TFunc) {
     let cred = captchaState.peek();
     if (!cred) {
       // No inline widget value — ask via modal (e.g. public form submit)
-      cred = await openCaptchaModal({ api, texts: texts() });
+      cred = await openCaptchaModal({ api, texts: texts(), box: cfg?.box });
     }
     config.headers = config.headers || {};
     config.headers['X-Captcha-Id'] = cred.id;
@@ -167,6 +168,7 @@ export function setupCaptchaGuard(app: any, t: TFunc) {
       <CaptchaBox
         api={api}
         texts={{ placeholder: tx.placeholder, clickToRefresh: tx.clickToRefresh, loadFailed: tx.loadFailed }}
+        boxConfig={cfg?.box}
         onChange={(cred) => captchaState.set(cred)}
       />,
     );

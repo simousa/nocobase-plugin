@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Modal } from 'antd';
-import { CaptchaBox } from './components/CaptchaBox';
+import { CaptchaBox, BoxSizeConfig } from './components/CaptchaBox';
 import type { CaptchaCredential } from './captcha-state';
 
 export interface CaptchaModalTexts {
@@ -17,6 +17,8 @@ export interface CaptchaModalTexts {
 interface ModalDeps {
   api: { request: (config: any) => Promise<any> };
   texts: CaptchaModalTexts;
+  /** Page-layout config (auto-fit / ratio + heights + image dimensions). */
+  box?: BoxSizeConfig;
 }
 
 let opening = false;
@@ -90,6 +92,7 @@ export function openCaptchaModal(deps: ModalDeps): Promise<CaptchaCredential> {
                 clickToRefresh: deps.texts.clickToRefresh,
                 loadFailed: deps.texts.loadFailed,
               }}
+              boxConfig={deps.box}
               onChange={setCred}
               autoFocus
               onPressEnter={submit}

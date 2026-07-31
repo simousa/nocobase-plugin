@@ -39,6 +39,10 @@ const DEFAULTS = {
   width: 150,
   height: 50,
   fontSize: 50,
+  layoutAuto: true,
+  inputRatio: 60,
+  inputHeight: 40,
+  displayHeight: 44,
   expiresIn: 300,
   rateLimitPerMinute: 30,
 };
@@ -57,6 +61,7 @@ export default function ImageCaptchaAdminSettingsForm() {
   const t = (key: string, opts?: any) => app.i18n.t(key, { ns: [PLUGIN_NS, 'client'], ...opts });
   const form = Form.useFormInstance();
   const captchaType = Form.useWatch(['options', 'captchaType'], form);
+  const layoutAuto = Form.useWatch(['options', 'layoutAuto'], form);
 
   const [previewImg, setPreviewImg] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -194,6 +199,12 @@ export default function ImageCaptchaAdminSettingsForm() {
 
       <Divider />
       <Typography.Title level={5}>{t('Appearance')}</Typography.Title>
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message={t('These control the captcha image itself — its generation size and visual style.')}
+      />
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
@@ -233,6 +244,52 @@ export default function ImageCaptchaAdminSettingsForm() {
           </Form.Item>
         </Col>
       </Row>
+
+      <Divider />
+      <Typography.Title level={5}>{t('Page layout')}</Typography.Title>
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message={t(
+          'These control how the captcha is laid out on the page (input box + image box). The captcha image is generated at the size set above.',
+        )}
+      />
+      <Form.Item
+        name={['options', 'layoutAuto']}
+        label={t('Auto-fit')}
+        valuePropName="checked"
+        initialValue={DEFAULTS.layoutAuto}
+        extra={t(
+          'When on, the image box matches the captcha image size (no scaling) and the input box takes the remaining width. Recommended.',
+        )}
+      >
+        <Switch />
+      </Form.Item>
+      {!layoutAuto && (
+        <>
+          <Form.Item
+            name={['options', 'inputRatio']}
+            label={t('Input box width ratio')}
+            initialValue={DEFAULTS.inputRatio}
+            extra={t('Width split between the input box and the image box. The image box gets the rest.')}
+          >
+            <Slider min={10} max={90} marks={{ 10: '10%', 30: '30%', 50: '50%', 70: '70%', 90: '90%' }} />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name={['options', 'inputHeight']} label={t('Input box height (px)')} initialValue={DEFAULTS.inputHeight}>
+                <InputNumber min={20} max={200} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name={['options', 'displayHeight']} label={t('Image box height (px)')} initialValue={DEFAULTS.displayHeight}>
+                <InputNumber min={30} max={300} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </>
+      )}
 
       <Divider />
       <Typography.Title level={5}>{t('Security policy')}</Typography.Title>

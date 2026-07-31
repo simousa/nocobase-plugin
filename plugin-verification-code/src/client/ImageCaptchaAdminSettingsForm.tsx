@@ -39,9 +39,13 @@ const DEFAULTS = {
   noise: 3,
   color: true,
   background: '#f2f3f5',
-  width: 150,
-  height: 50,
-  fontSize: 50,
+  width: 80,
+  height: 40,
+  fontSize: 36,
+  layoutAuto: true,
+  inputRatio: 60,
+  inputHeight: 40,
+  displayHeight: 44,
   expiresIn: 300,
   rateLimitPerMinute: 30,
 };
@@ -71,8 +75,19 @@ function strField(title: string, dflt: string, props: Record<string, any>) {
   };
 }
 
-function numField(title: string, dflt: number, props: Record<string, any>, desc?: string) {
+function inputField(title: string, dflt: string, props: Record<string, any>) {
   return {
+    type: 'string',
+    'x-decorator': 'FormItem',
+    title,
+    'x-component': 'Input',
+    default: dflt,
+    'x-component-props': props,
+  };
+}
+
+function numField(title: string, dflt: number, props: Record<string, any>, desc?: string, reactions?: any) {
+  const field: any = {
     type: 'number',
     'x-decorator': 'FormItem',
     title,
@@ -81,6 +96,8 @@ function numField(title: string, dflt: number, props: Record<string, any>, desc?
     'x-component-props': { style: { width: '100%' }, ...props },
     ...(desc ? { description: desc } : {}),
   };
+  if (reactions) field['x-reactions'] = reactions;
+  return field;
 }
 
 function numSlider(title: string, dflt: number, props: Record<string, any>, desc?: string) {
@@ -123,6 +140,9 @@ export default function ImageCaptchaAdminSettingsForm() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [engine, setEngine] = useState('');
   const [type, setType] = useState<string>((form?.values?.options?.captchaType as string) || 'characters');
+  const [autoLayout, setAutoLayout] = useState<boolean>(
+    (form?.values?.options?.layoutAuto as boolean) !== false,
+  );
   const previewTimer = useRef<any>(null);
 
   const getOpts = useCallback(() => {
@@ -157,6 +177,7 @@ export default function ImageCaptchaAdminSettingsForm() {
     const dispose = form?.subscribe?.(() => {
       const v = (form.values?.options?.captchaType as string) || 'characters';
       setType(v);
+      setAutoLayout((form.values?.options?.layoutAuto as boolean) !== false);
       schedulePreview();
     });
     return () => {
@@ -242,9 +263,43 @@ export default function ImageCaptchaAdminSettingsForm() {
       width: numField(tVal('Width (px)'), DEFAULTS.width, { min: 80, max: 400 }),
       height: numField(tVal('Height (px)'), DEFAULTS.height, { min: 30, max: 160 }),
       fontSize: numField(tVal('Font size'), DEFAULTS.fontSize, { min: 20, max: 120 }),
-      background: strField(tVal('Background color'), DEFAULTS.background, { placeholder: '#f2f3f5' }),
+      background: inputField(tVal('Background color'), DEFAULTS.background, { placeholder: '#f2f3f5' }),
     },
   };
+
+  const layoutSection = autoLayout
+    ? {
+        type: 'void',
+        properties: {
+          layoutAuto: boolField(
+            tVal('Auto-fit'),
+            DEFAULTS.layoutAuto,
+            tVal(
+              'When on, the image box matches the captcha image size (no scaling) and the input box takes the remaining width. Recommended.',
+            ),
+          ),
+        },
+      }
+    : {
+        type: 'void',
+        properties: {
+          layoutAuto: boolField(
+            tVal('Auto-fit'),
+            DEFAULTS.layoutAuto,
+            tVal(
+              'When on, the image box matches the captcha image size (no scaling) and the input box takes the remaining width. Recommended.',
+            ),
+          ),
+          inputRatio: numSlider(
+            tVal('Input box width ratio'),
+            DEFAULTS.inputRatio,
+            { min: 10, max: 90, marks: { 10: '10%', 30: '30%', 50: '50%', 70: '70%', 90: '90%' } },
+            tVal('Width split between the input box and the image box. The image box gets the rest.'),
+          ),
+          inputHeight: numField(tVal('Input box height (px)'), DEFAULTS.inputHeight, { min: 20, max: 200 }),
+          displayHeight: numField(tVal('Image box height (px)'), DEFAULTS.displayHeight, { min: 30, max: 300 }),
+        },
+      };
 
   const securitySection = {
     type: 'void',
@@ -283,7 +338,25 @@ export default function ImageCaptchaAdminSettingsForm() {
 
       <Divider />
       <Typography.Title level={5}>{tVal('Appearance')}</Typography.Title>
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message={t('These control the captcha image itself — its generation size and visual style.')}
+      />
       <SchemaComponent schema={appearanceSection} components={COMPONENTS} />
+
+      <Divider />
+      <Typography.Title level={5}>{tVal('Page layout')}</Typography.Title>
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message={t(
+          'These control how the captcha is laid out on the page (input box + image box). The captcha image is generated at the size set above.',
+        )}
+      />
+      <SchemaComponent schema={layoutSection} components={COMPONENTS} />
 
       <Divider />
       <Typography.Title level={5}>{tVal('Security policy')}</Typography.Title>

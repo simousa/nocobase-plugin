@@ -1,6 +1,6 @@
 {
   "name": "@simo/plugin-verification-code",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "displayName": "Verification code (CAPTCHA)",
   "displayName.zh-CN": "图片验证码",
   "description": "Locally generated CAPTCHA for sign-in, sign-up, forgot-password and public form submissions. Prevents bots from batch submitting data.",
