@@ -170,7 +170,9 @@ export class PluginVerificationCodeServer extends Plugin {
     let verificationPlugin: any = null;
     for (const candidate of [VERIFICATION_PLUGIN, 'verification']) {
       try {
-        const p = this.app.pm.get(candidate);
+        // `verificationManager` is added by the official verification plugin;
+        // it is not on the base `Plugin` type, so cast to access it.
+        const p = this.app.pm.get(candidate) as any;
         if (p?.verificationManager) {
           verificationPlugin = p;
           break;

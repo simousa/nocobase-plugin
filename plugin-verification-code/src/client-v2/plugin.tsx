@@ -73,7 +73,7 @@ export class PluginVerificationCodeClientV2 extends Plugin<any, Application> {
     //    present in the client plugin manager (the common case, since all
     //    plugins are added to `pm` before any `load()` runs).
     if (this.tryRegister()) {
-      setupCaptchaGuard(this.app, (key: string) => this.t(key));
+      setupCaptchaGuard(this.app, (key: string) => this.t(key) as unknown as string);
       return;
     }
 
@@ -114,7 +114,7 @@ export class PluginVerificationCodeClientV2 extends Plugin<any, Application> {
       this.tryRegister();
     }, 60000);
 
-    setupCaptchaGuard(this.app, (key: string) => this.t(key));
+    setupCaptchaGuard(this.app, (key: string) => this.t(key) as unknown as string);
   }
 }
 
