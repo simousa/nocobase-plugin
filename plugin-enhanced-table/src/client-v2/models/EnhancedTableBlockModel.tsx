@@ -168,11 +168,21 @@ export class EnhancedTableBlockModel extends TableBlockModel {
         const values = fieldValues[agg.field] || [];
         const statLabel = t(STAT_LABELS[statKey]);
         const value = formatNum(computeStat(statKey, values));
+        // Two-line layout: stat label on top, value below.
+        // textAlign follows the chosen footer alignment; padding increases row height.
         content = (
-          <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: 11, opacity: 0.65, marginRight: 4 }}>{statLabel}</span>
-            {value}
-          </span>
+          <div
+            style={{
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              textAlign: align,
+              lineHeight: 1.4,
+              padding: '4px 0',
+            }}
+          >
+            <div style={{ fontSize: 11, opacity: 0.65 }}>{statLabel}</div>
+            <div>{value}</div>
+          </div>
         );
       } else if (!labelPlaced) {
         // Place the row label in the first available non-aggregated column.
