@@ -126,5 +126,5 @@
 
 ---
 
-## Release
+## 下载
 https://github.com/simousa/nocobase-plugin/releases

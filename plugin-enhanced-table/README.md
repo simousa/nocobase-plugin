@@ -11,6 +11,17 @@
 
 两类能力均可在区块设置中独立开关，并选择需要显示的统计项。
 
+---
+
+## 效果图
+
+<img src="../example_images/plugin-enhanced-table_001.jpg" alt="增强表格示意图" width="800" />
+
+<img src="../example_images/plugin-enhanced-table_002.jpg" alt="增强表格示意图" width="800" />
+
+<img src="../example_images/plugin-enhanced-table_003.jpg" alt="增强表格示意图" width="800" />
+
+
 ## 功能特性
 
 - **数值列自动识别**：根据集合字段的 `type`（integer / float / decimal / percent …）或界面类型（integer / number / percent）自动判断是否为数值列，仅对数值列做求和 / 平均 / 最大 / 最小。
@@ -20,50 +31,12 @@
 - **可配置**：通过区块设置流（`enhancedTableSettings`）提供「显示底部汇总行」「字段汇总配置」「底部对齐方式」「显示拖选统计」「拖选统计显示项」等开关 / 选择器 / 编辑器。
 - **中英文双语**：内置 `zh-CN` / `en-US` 语言包。
 
-## 工作原理
 
-| 层级 | 关键文件 | 说明 |
-| --- | --- | --- |
-| 客户端 v2 | `src/client-v2/models/EnhancedTableBlockModel.tsx` | 继承 `TableBlockModel`，`onMount` 注入 `summary` 渲染器；`renderSummary` 按字段配置渲染单行汇总；`renderComponent` 包裹 `SelectionStatsView`。 |
-| 客户端 v2 | `src/client-v2/components/FieldAggregationsEditor.tsx` | 设置面板中的「字段汇总配置」编辑器，从当前区块列动态加载字段选项，逐字段选择汇总方式。 |
-| 客户端 v2 | `src/client-v2/components/SelectionStatsView.tsx` | 纯 DOM 监听 `mousedown/mousemove/mouseup` 实现框选，弹出统计浮层（通过 portal 渲染到 `document.body`）。 |
-| 客户端 v1 | `src/client/plugin.tsx` | 注册流引擎模型（兼容旧版 UI）。 |
-| 服务端 | `src/server/plugin.ts` | 占位 `Plugin` 类（本插件逻辑主要在客户端，服务端无自定义动作）。 |
+## 安装
 
-区块通过 `EnhancedTableBlockModel.define({...})` 注册到区块选择器（`group: Content`，`sort: 310`），并通过 `registerFlow` 暴露「增强表格设置」配置流。
+本插件随 NocoBase 主工程以本地包方式安装，包名 `@simo/plugin-enhanced-table`。
 
-## 目录结构
-
-```
-plugin-enhanced-table/
-├── package.json
-├── src/
-│   ├── index.ts                      # 服务端入口（导出 server）
-│   ├── server/
-│   │   └── plugin.ts                # 服务端 Plugin 类（占位）
-│   ├── client/                      # 旧版 (@nocobase/client) 客户端入口
-│   │   ├── plugin.tsx
-│   │   ├── index.tsx
-│   │   └── models/index.ts
-│   ├── client-v2/                  # 新版 (@nocobase/client-v2) 客户端
-│   │   ├── plugin.tsx
-│   │   ├── index.tsx
-│   │   ├── models/EnhancedTableBlockModel.tsx
-│   │   └── components/
-│   │       ├── FieldAggregationsEditor.tsx
-│   │       └── SelectionStatsView.tsx
-│   └── locale/
-│       ├── zh-CN.json
-│       └── en-US.json
-```
-
-## 安装与构建
-
-作为 NocoBase 插件，需在本仓库的 NocoBase 应用中构建并启用：
-
-```bash
-# 「插件管理」-> 找到 Enhanced Table -> 启用
-```
+到 [Release 页](https://github.com/simousa/nocobase-plugin/releases)，下载对应的插件，在`nocobase`->`插件管理器`中启用插件。
 
 ## 依赖与环境
 
@@ -80,3 +53,8 @@ plugin-enhanced-table/
    - 在「字段汇总配置」中为每个字段选择汇总方式（求和 / 平均值 / 最大值 / 最小值 / 计数 / 无），底部只会渲染一行汇总；
    - 在「底部对齐方式」中选择左对齐（默认）/ 居中 / 右对齐；
    - 开启「显示拖选统计」后，在「拖选统计显示项」中选择框选时浮层需要展示的统计值，然后在表格中按住鼠标拖拽框选单元格即可查看实时统计。
+
+---
+
+## 下载
+https://github.com/simousa/nocobase-plugin/releases

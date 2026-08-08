@@ -8,6 +8,17 @@
 
 所有验证码均在 **服务器本地生成，不调用任何第三方 API**（`svg-captcha` 优先，缺失时回退到内置零依赖生成器），特别适合对数据出境有合规要求的私有化部署。
 
+---
+
+## 效果图
+
+<img src="../example_images/plugin-verification-code_001.jpg" alt="验证码示意图" width="800" />
+
+<img src="../example_images/plugin-verification-code_002.jpg" alt="验证码示意图" width="800" />
+
+<img src="../example_images/plugin-verification-code_003.jpg" alt="验证码示意图" width="800" />
+
+
 ## 功能特性
 
 ### 验证码生成
@@ -38,55 +49,11 @@
 ### 存储
 - 优先使用 NocoBase `cacheManager`（多实例部署下支持 Redis 共享）；不可用时回退到进程内内存存储。
 
-## 工作原理
+## 安装
 
-| 层级 | 关键文件 | 说明 |
-| --- | --- | --- |
-| 服务端 | `src/server/plugin.ts` | 注册 `image-captcha` 验证类型；定义 `captcha` 资源（`generate`/`getPublicConfig`/`test`）；注册资源中间件做校验；合并多验证器配置（带缓存）。 |
-| 服务端 | `src/server/captcha-service.ts` | `CaptchaService`：生成/渲染/校验/限流/存储，参数安全归一化（`normalize`）。 |
-| 服务端 | `src/server/local-captcha.ts` | 内置零依赖生成器（svg-captcha 不可用时的 fallback）。 |
-| 服务端 | `src/server/image-captcha-verification.ts` | 对接官方验证插件的校验实现。 |
-| 客户端 v2 | `src/client-v2/plugin.tsx` | 向官方 `verificationManager` 注册 `image-captcha` 类型（含兼容加载顺序的轮询/事件兜底）。 |
-| 客户端 v2 | `src/client-v2/captcha-guard.tsx` | 安装 axios 拦截器 + 登录页内联注入守卫。 |
-| 客户端 v2 | `src/client-v2/captcha-state.ts` | 内联组件与拦截器之间共享验证码凭证状态。 |
-| 客户端 | `src/client/ImageCaptchaAdminSettingsForm.tsx` | 管理员设置表单（v1 UI）。 |
+本插件随 NocoBase 主工程以本地包方式安装，包名 `@simo/plugin-verification-code`。
 
-**校验流程**：客户端请求受保护接口 → 中间件读取 `X-Captcha-Id/Code` → `CaptchaService.verify` 比对（一次性、限时、防时序）→ 通过则继续，否则返回 `CAPTCHA_REQUIRED` / `CAPTCHA_INVALID`。
-
-## 目录结构
-
-```
-plugin-verification-code/
-├── package.json
-├── src/
-│   ├── index.ts
-│   ├── server/
-│   │   ├── plugin.ts
-│   │   ├── captcha-service.ts
-│   │   ├── local-captcha.ts
-│   │   └── image-captcha-verification.ts
-│   ├── client/                          # 旧版客户端
-│   │   ├── plugin.tsx
-│   │   └── ImageCaptchaAdminSettingsForm.tsx
-│   ├── client-v2/                      # 新版客户端
-│   │   ├── plugin.tsx
-│   │   ├── captcha-guard.tsx
-│   │   ├── captcha-state.ts
-│   │   ├── captcha-modal.tsx
-│   │   ├── components/
-│   │   │   ├── CaptchaBox.tsx
-│   │   │   └── ImageCaptchaAdminSettingsForm.tsx
-│   │   └── locale.ts
-│   └── locale/{zh-CN,en-US}.json
-```
-
-## 安装与构建
-
-```bash
-# 1) 在 NocoBase 插件管理中先启用官方「验证码」插件
-# 2) 再启用「图片验证码」插件
-# 3) 在 验证器(Verifiers) 中新建一个 image-captcha 类型的图片验证器并配置场景/外观等内容
-```
+到 [Release 页](https://github.com/simousa/nocobase-plugin/releases)，下载对应的插件，在`nocobase`->`插件管理器`中启用插件。
 
 > 本插件依赖官方 `@nocobase/plugin-verification`（已声明于 `pluginDependencies` 与 `peerDependencies`）。
 
@@ -99,7 +66,12 @@ plugin-verification-code/
 
 ## 使用说明
 
-1. 启用官方 验证码 插件与本插件。
+1. 启用官方 `验证码` 插件与本插件。
 2. 进入「验证码」管理，新建 `image-captcha` 类型验证器。
 3. 在设置中勾选需要保护的场景（登录/注册/忘记密码/公开表单），并配置验证码类型、字符集、外观与安全策略。
 4. 配置保存后，受保护页面将自动要求输入验证码，接口层由中间件强制校验。
+
+---
+
+## 下载
+https://github.com/simousa/nocobase-plugin/releases
