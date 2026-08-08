@@ -46,11 +46,7 @@
 
 本插件随 NocoBase 主工程以本地包方式安装，包名 `@simo/plugin-field-barcode`。
 
-```bash
-# 在主工程中启用插件（示例）
-yarn pm add @simo/plugin-field-barcode -d <你的应用名>
-yarn pm enable @simo/plugin-field-barcode -d <你的应用名>
-```
+到 [Release 页](https://github.com/simousa/nocobase-plugin/releases)，下载对应的插件，在`nocobase`->`插件管理器`中启用插件。
 
 > 插件首次安装后会自动创建数据表`simoBarcode`写入一行默认配置。
 
@@ -127,3 +123,8 @@ yarn pm enable @simo/plugin-field-barcode -d <你的应用名>
 感谢 一维条码 项目 [JsBarcode](https://github.com/JsBarcode/JsBarcode)
 
 感谢 二维码 项目 [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator)
+
+---
+
+## Release
+https://github.com/simousa/nocobase-plugin/releases
