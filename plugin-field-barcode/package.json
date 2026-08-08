@@ -1,0 +1,20 @@
+{
+  "name": "@simo/plugin-field-barcode",
+  "version": "0.1.0",
+  "displayName": "Field barcode display",
+  "displayName.zh-CN": "字段条码显示",
+  "description": "Display any field value as a barcode (CODE128/CODE39/EAN/UPC/ITF-14/MSI/Codabar/Pharmacode) or a QR code, without changing how the data is stored. Barcodes are generated locally in the browser, no external API is called.",
+  "description.zh-CN": "将任意字段的值以条码（CODE128/CODE39/EAN/UPC/ITF-14/MSI/Codabar/Pharmacode）或二维码形式显示，不改变数据库中的存储方式。条码完全在浏览器本地生成，不调用任何外部接口。",
+  "main": "dist/server/index.js",
+  "dependencies": {
+    "jsbarcode": "^3.12.3",
+    "qrcode-generator": "^2.0.4",
+    "react-i18next": "^11.18.6"
+  },
+  "peerDependencies": {
+    "@nocobase/client": "2.x",
+    "@nocobase/client-v2": "2.x",
+    "@nocobase/server": "2.x",
+    "@nocobase/test": "2.x"
+  }
+}
