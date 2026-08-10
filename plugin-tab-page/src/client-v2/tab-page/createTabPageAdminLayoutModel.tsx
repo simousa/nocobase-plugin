@@ -48,24 +48,27 @@ import { type MutationResult, tabStore } from './TabStore';
  * The tab bar is rendered as a `position: fixed` strip pinned right below the
  * top navigation bar and spanning the full viewport width.
  *
- * We cannot portal into the admin layout's content container (the
- * `.nb-subpages-slot-without-header-and-side` div) because that container lives
- * *inside* the layout's sider/content split — on pages that show a group menu
- * (2nd/3rd level menus) the bar would end up to the right of the sider instead
- * of above it. Pinning to the viewport guarantees the bar is always the topmost
- * row, above both the sider and the content area, exactly like a browser.
+ * CRITICAL — portal target:
  *
- * `top` follows NocoBase's `--nb-header-height` CSS variable so the bar sits
- * right under the global header. A high `z-index` keeps it above nested
- * ProLayouts / drawers / popovers that live inside the content area.
+ *
+ * z-index hierarchy INSIDE `#nocobase-app-container` (all share the same
+ * stacking context):
+ *
+ *   Popups (Drawer/Modal)   1001+ 
+ *   Sider collapsed button   200
+ *   Header (nav bar)         101
+ *   Page content (PageComp)    4 
+ *   Sider / content area       0 
+ *
  */
 const slotClass = css`
   position: fixed;
   top: var(--nb-header-height, 48px);
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 200;
 `;
+const APP_CONTAINER_SELECTOR = '#nocobase-app-container';
 
 /**
  * Selector of the admin layout content container. We push it down by the tab
@@ -93,10 +96,53 @@ const TabBarPortal: React.FC<TabBarPortalProps> = ({ model }) => {
   const { activeKey } = useTabState();
   const barRef = React.useRef<HTMLDivElement>(null);
 
-  // Push the admin content container down by exactly the bar's height so the
-  // fixed bar does not overlap the page content. Restored on cleanup.
+  // ── Resolve the portal target: #nocobase-app-container ──────────────
+  const resolveTarget = React.useCallback((): HTMLElement | null => {
+    if (typeof document === 'undefined') return null;
+    // Method 1: traverse from the content element
+    const host = model.getTabHost();
+    const fromHost = host?.closest<HTMLElement>(APP_CONTAINER_SELECTOR);
+    if (fromHost) return fromHost;
+    // Method 2: direct query
+    return document.querySelector<HTMLElement>(APP_CONTAINER_SELECTOR);
+  }, [model]);
+
+  const [portalTarget, setPortalTarget] = React.useState<HTMLElement | null>(null);
+
+  // Initial resolution + retry interval
+  React.useEffect(() => {
+    const target = resolveTarget();
+    if (target) {
+      setPortalTarget(target);
+      return;
+    }
+    // Container not ready yet — poll until it appears (max 10 s)
+    const interval = setInterval(() => {
+      const t = resolveTarget();
+      if (t) {
+        setPortalTarget(t);
+        clearInterval(interval);
+      }
+    }, 100);
+    const timeout = setTimeout(() => clearInterval(interval), 10000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [resolveTarget]);
+
+  // Also re-resolve when the host element changes (e.g. after navigation
+  // that causes the content element to be re-created).
+  React.useEffect(() => {
+    return model.subscribeTabHost(() => {
+      const t = resolveTarget();
+      if (t) setPortalTarget(t);
+    });
+  }, [model, resolveTarget]);
+
+  // ── Push the content area down by the bar's height ──────────────────
   useEffect(() => {
-    if (!settings.enabled) return;
+    if (!settings.enabled || !portalTarget) return;
     const container = document.querySelector<HTMLElement>(CONTENT_CONTAINER_SELECTOR);
     if (!container) return;
     const previousPadding = container.style.paddingTop;
@@ -111,20 +157,17 @@ const TabBarPortal: React.FC<TabBarPortalProps> = ({ model }) => {
       ro?.disconnect();
       container.style.paddingTop = previousPadding;
     };
-  }, [settings.enabled, activeKey]);
+  }, [settings.enabled, activeKey, portalTarget]);
 
-  if (!settings.enabled || typeof document === 'undefined') {
+  if (!settings.enabled || !portalTarget) {
     return null;
   }
 
-  // Portal to <body> with `position: fixed` (see slotClass) so the bar is always
-  // the topmost row of the page — above the sider (group menus) and the content
-  // area alike — regardless of which nested layout the current route renders.
   return createPortal(
     <div ref={barRef} className={slotClass} data-simo-tab-page-slot="true">
       <TabBar controller={model.getTabController()} IconComponent={Icon} />
     </div>,
-    document.body,
+    portalTarget,
   );
 };
 
