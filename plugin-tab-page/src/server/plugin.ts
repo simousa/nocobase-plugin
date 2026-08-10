@@ -3,6 +3,7 @@ import { Plugin } from '@nocobase/server';
 import {
   BUILT_IN_DEFAULTS,
   SETTINGS_ACL_SNIPPET,
+  SETTINGS_CONFIG_ACL_SNIPPET,
   SETTINGS_COLLECTION,
   SETTINGS_RESOURCE,
   TabPageGlobalConfig,
@@ -92,9 +93,20 @@ export class PluginTabPageServer extends Plugin {
     // Every authenticated user must be able to read the settings, otherwise
     // the tab bar would silently fall back to the built-in defaults.
     this.app.acl.allow(SETTINGS_RESOURCE, 'get', 'loggedIn');
-    // Writing is a plugin-settings operation, guarded by the `pm.*` snippet.
+
+    // `pm.tab-page` gates *menu visibility* (auto-derived by the settings
+    // manager from the page key). We keep it registered so admins can grant or
+    // deny menu access — but it grants no resource action on its own.
     this.app.acl.registerSnippet({
       name: SETTINGS_ACL_SNIPPET,
+      actions: [],
+    });
+
+    // Writing the *global defaults* is a separate, administrator-only capability
+    // (`pm.tab-page-config`). A regular user who may open the settings page and
+    // tune their own browser therefore cannot change the instance-wide config.
+    this.app.acl.registerSnippet({
+      name: SETTINGS_CONFIG_ACL_SNIPPET,
       actions: [`${SETTINGS_RESOURCE}:update`],
     });
   }

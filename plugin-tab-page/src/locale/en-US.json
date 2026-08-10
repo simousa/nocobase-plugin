@@ -1,6 +1,7 @@
 {
   "Tab page": "Tab page",
   "Global defaults": "Global defaults",
+  "Global config": "Global config",
   "My preferences": "My preferences",
   "Enable tab mode": "Enable tab mode",
   "Open menus as tabs inside the current page instead of navigating away.": "Open menus as tabs inside the current page instead of navigating away.",
@@ -39,7 +40,8 @@
   "Restore tabs after reload": "Restore tabs after reload",
   "Allow users to override these settings": "Allow users to override these settings",
   "Users can then adjust the appearance and the close behaviour in their own browser.": "Users can then adjust the appearance and the close behaviour in their own browser.",
-  "The administrator has disabled personal overrides.": "The administrator has disabled personal overrides.",
+  "The administrator has not enabled personal preference override.": "The administrator has not enabled personal preference override.",
+  "You can only configure your personal preferences. Global defaults are managed by the administrator.": "You can only configure your personal preferences. Global defaults are managed by the administrator.",
   "Personal overrides are stored in this browser only.": "Personal overrides are stored in this browser only.",
   "Follow the global default": "Follow the global default",
   "Save": "Save",

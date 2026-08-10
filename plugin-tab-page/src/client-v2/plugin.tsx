@@ -54,6 +54,20 @@ export class PluginTabPageClient extends Plugin<any, Application> {
       title: this.t('Settings') as unknown as string,
       componentLoader: () => import('./pages/TabPageSettingsPage'),
     });
+
+    // A *hidden* second page whose only purpose is to surface a distinct ACL
+    // snippet (`pm.tab-page.global`, shown in the role permission tree as
+    // 标签页 → 全局配置) that gates writes to the global defaults. Hidden so it
+    // does not appear as a second tab in the settings UI — yet it still shows up
+    // in the "插件设置" permission tree because the tree enumerates every page
+    // item regardless of `hidden`.
+    this.pluginSettingsManager.addPageTabItem({
+      menuKey: SETTINGS_PAGE_KEY,
+      key: 'global',
+      title: this.t('Global config') as unknown as string,
+      hidden: true,
+      componentLoader: () => import('./pages/TabPageSettingsPage'),
+    });
   }
 }
 

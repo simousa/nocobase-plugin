@@ -22,8 +22,20 @@ export const SETTINGS_RESOURCE = 'simoTabPageSettings';
 /** Key of the entry registered in the plugin settings manager. */
 export const SETTINGS_PAGE_KEY = 'tab-page';
 
-/** ACL snippet guarding writes to the global settings. */
+/** ACL snippet gating *menu access* to the plugin settings page. */
 export const SETTINGS_ACL_SNIPPET = `pm.${SETTINGS_PAGE_KEY}`;
+
+/**
+ * ACL snippet guarding *writes* to the global settings.
+ *
+ * It is exposed as a **second, hidden page** of the plugin settings entry
+ * (`pm.tab-page.global`, shown in the role permission UI as 标签页 → 全局配置),
+ * so it lives in the same "插件设置" tree as the menu/visibility snippets
+ * instead of as a bare resource action. A regular user who can only open the
+ * settings page (and tune their own browser) therefore cannot change the
+ * instance-wide defaults — that stays an administrator-only capability.
+ */
+export const SETTINGS_CONFIG_ACL_SNIPPET = `pm.${SETTINGS_PAGE_KEY}.global`;
 
 /** localStorage key holding the *personal* overrides of the current browser. */
 export const LOCAL_PREFS_KEY = 'simo-tab-page:prefs';

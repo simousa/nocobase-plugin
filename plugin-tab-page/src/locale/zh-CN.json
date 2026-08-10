@@ -1,6 +1,7 @@
 {
   "Tab page": "标签页",
   "Global defaults": "全局默认",
+  "Global config": "全局配置",
   "My preferences": "我的偏好",
   "Enable tab mode": "启用标签页模式",
   "Open menus as tabs inside the current page instead of navigating away.": "打开菜单时在当前页面新增标签，而不是整页跳转。",
@@ -39,7 +40,8 @@
   "Restore tabs after reload": "刷新后恢复标签",
   "Allow users to override these settings": "允许用户覆盖以上设置",
   "Users can then adjust the appearance and the close behaviour in their own browser.": "开启后，用户可在自己的浏览器中调整外观与关闭方式。",
-  "The administrator has disabled personal overrides.": "管理员已关闭个人偏好覆盖。",
+  "The administrator has not enabled personal preference override.": "管理员未开放个人偏好覆盖。",
+  "You can only configure your personal preferences. Global defaults are managed by the administrator.": "你只能配置个人偏好，全局默认由管理员统一管理。",
   "Personal overrides are stored in this browser only.": "个人偏好仅保存在当前浏览器中。",
   "Follow the global default": "跟随全局默认",
   "Save": "保存",

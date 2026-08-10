@@ -7,8 +7,10 @@
  *
  * Two sections:
  *
- * 1. **Global defaults** (admin only) — edited by a user with the `pm.tab-page`
- *    snippet and persisted to the server.
+ * 1. **Global defaults** (administrator only) — persisted to the server, gated
+ *    by the `pm.tab-page.global` ACL snippet (shown in the role permission tree
+ *    as 标签页 → 全局配置). Regular users without that snippet never even see
+ *    this card.
  * 2. **My preferences** — every logged-in user may partially override the
  *    *look & close behaviour* in their own browser (`localStorage`). Disabled
  *    automatically when the administrator turns off `allowUserOverride`.
@@ -16,8 +18,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, Card, Col, Divider, Form, InputNumber, Row, Select, Space, Spin, Switch, message } from 'antd';
 import { useFlowEngine } from '@nocobase/flow-engine';
+import { useAclSnippets } from '@nocobase/client-v2';
 import {
   MAX_TABS_LIMIT,
+  SETTINGS_CONFIG_ACL_SNIPPET,
   TabPageGlobalConfig,
   TabPagePrefs,
   USER_OVERRIDABLE_KEYS,
@@ -65,6 +69,12 @@ export const TabPageSettingsPage: React.FC = () => {
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [globalValues, setGlobalValues] = useState<TabPageGlobalConfig>(getGlobalConfig());
   const [allowOverride, setAllowOverride] = useState<boolean>(globalValues.allowUserOverride);
+
+  // Whether the current role may edit the *global* defaults. Users without the
+  // `pm.tab-page-config` snippet (e.g. regular users who can only tune their own
+  // browser) never see the "Global defaults" card.
+  const { allow } = useAclSnippets();
+  const canManageGlobal = allow(SETTINGS_CONFIG_ACL_SNIPPET);
 
   useEffect(() => {
     let alive = true;
@@ -275,43 +285,53 @@ export const TabPageSettingsPage: React.FC = () => {
 
   return (
     <Row gutter={24}>
-      <Col xs={24} lg={12}>
-        <Card title={t('Global defaults')} style={{ marginBottom: 24 }}>
-          <Form form={globalForm} layout="vertical" initialValues={globalValues} style={{ maxWidth: 460 }}>
-            <Divider orientation="left">{t('Capacity')}</Divider>
-            {renderField('enabled')}
-            {renderField('maxTabs')}
-            {renderField('overflowStrategy')}
+      {canManageGlobal && (
+        <Col xs={24} lg={12}>
+          <Card title={t('Global defaults')} style={{ marginBottom: 24 }}>
+            <Form form={globalForm} layout="vertical" initialValues={globalValues} style={{ maxWidth: 460 }}>
+              <Divider orientation="left">{t('Capacity')}</Divider>
+              {renderField('enabled')}
+              {renderField('maxTabs')}
+              {renderField('overflowStrategy')}
 
-            <Divider orientation="left">{t('Appearance')}</Divider>
-            {renderField('tabSize')}
-            {renderField('tabShape')}
-            {renderField('tabMaxWidth')}
-            {renderField('tabMinWidth')}
-            {renderField('showIcon')}
-            {renderField('showRefreshButton')}
+              <Divider orientation="left">{t('Appearance')}</Divider>
+              {renderField('tabSize')}
+              {renderField('tabShape')}
+              {renderField('tabMaxWidth')}
+              {renderField('tabMinWidth')}
+              {renderField('showIcon')}
+              {renderField('showRefreshButton')}
 
-            <Divider orientation="left">{t('Close behaviour')}</Divider>
-            {renderField('closeButtonVisibility')}
-            {renderField('closeOnMiddleClick')}
-            {renderField('contextMenuEnabled')}
-            {renderField('pinHomeTab')}
-            {renderField('keepAtLeastOneTab')}
-            {renderField('destroyOnClose')}
-            {renderField('restoreTabsOnReload')}
-            {renderField('allowUserOverride')}
+              <Divider orientation="left">{t('Close behaviour')}</Divider>
+              {renderField('closeButtonVisibility')}
+              {renderField('closeOnMiddleClick')}
+              {renderField('contextMenuEnabled')}
+              {renderField('pinHomeTab')}
+              {renderField('keepAtLeastOneTab')}
+              {renderField('destroyOnClose')}
+              {renderField('restoreTabsOnReload')}
+              {renderField('allowUserOverride')}
 
-            <Space>
-              <Button type="primary" loading={savingGlobal} onClick={handleGlobalSubmit}>
-                {t('Save')}
-              </Button>
-            </Space>
-          </Form>
-        </Card>
-      </Col>
+              <Space>
+                <Button type="primary" loading={savingGlobal} onClick={handleGlobalSubmit}>
+                  {t('Save')}
+                </Button>
+              </Space>
+            </Form>
+          </Card>
+        </Col>
+      )}
 
-      <Col xs={24} lg={12}>
+      <Col xs={24} lg={canManageGlobal ? 12 : 24}>
         <Card title={t('My preferences')} style={{ marginBottom: 24 }}>
+          {!canManageGlobal && (
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message={t('You can only configure your personal preferences. Global defaults are managed by the administrator.')}
+            />
+          )}
           {allowOverride ? (
             <Alert
               type="info"
@@ -324,7 +344,7 @@ export const TabPageSettingsPage: React.FC = () => {
               type="warning"
               showIcon
               style={{ marginBottom: 16 }}
-              message={t('The administrator has disabled personal overrides.')}
+              message={t('The administrator has not enabled personal preference override.')}
             />
           )}
           <Form form={prefsForm} layout="vertical" initialValues={getEffectiveSettings()} style={{ maxWidth: 460 }}>
