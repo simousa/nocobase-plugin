@@ -10,6 +10,8 @@
 | [`plugin-import-export-enhancement`](./plugin-import-export-enhancement/README.md) | 导入/导出增强 | 追加/更新/覆盖三模式导入；导出筛选后的数据/整个数据表数据 | <img src="./example_images/plugin-import-export-enhancement_001.jpg"/> |
 | [`plugin-verification-code`](./plugin-verification-code/README.md) | 图片验证码 | 本地生成字符/算术验证码，保护登录/注册/忘记密码/公开表单，零第三方 API 依赖 | <img src="./example_images/plugin-verification-code_001.jpg"/> |
 | [`plugin-field-barcode`](./plugin-field-barcode/README.md) | 字段值条码显示 | 可将字段值显示为条形码/二维码 | <img src="./example_images/plugin-field-barcode_002.jpg"/> |
+| [`plugin-tab-page`](./plugin-tab-page/README.md) | 标签页（浏览器式多标签） | 在当前页面顶部新增一个标签页，点击某个标签即可切换到对应页面 | <img src="./example_images/plugin-tab-page_001.jpg"/> |
+
 
 ## 备注
 
