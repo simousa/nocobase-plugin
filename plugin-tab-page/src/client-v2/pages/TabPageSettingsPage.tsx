@@ -36,28 +36,27 @@ import {
 } from '../tab-page/settings';
 import { useT } from '../locale';
 
-const tabSizeOptions = [
-  { value: 'small', label: 'Small' },
-  { value: 'middle', label: 'Medium' },
-  { value: 'large', label: 'Large' },
-];
-const tabShapeOptions = [
-  { value: 'card', label: 'Card' },
-  { value: 'round', label: 'Rounded' },
-  { value: 'line', label: 'Underline' },
-];
-const closeButtonOptions = [
-  { value: 'always', label: 'Always visible' },
-  { value: 'hover', label: 'On hover' },
-  { value: 'active', label: 'Active tab only' },
-];
-const overflowOptions = [
-  { value: 'closeOldest', label: 'Close the least recently used tab' },
-  { value: 'blockNew', label: 'Refuse to open a new tab' },
-];
-
 export const TabPageSettingsPage: React.FC = () => {
   const t = useT();
+  const tabSizeOptions = [
+    { value: 'small', label: t('Small') },
+    { value: 'middle', label: t('Medium') },
+    { value: 'large', label: t('Large') },
+  ];
+  const tabShapeOptions = [
+    { value: 'card', label: t('Card') },
+    { value: 'round', label: t('Rounded') },
+    { value: 'line', label: t('Underline') },
+  ];
+  const closeButtonOptions = [
+    { value: 'always', label: t('Always visible') },
+    { value: 'hover', label: t('On hover') },
+    { value: 'active', label: t('Active tab only') },
+  ];
+  const overflowOptions = [
+    { value: 'closeOldest', label: t('Close the least recently used tab') },
+    { value: 'blockNew', label: t('Refuse to open a new tab') },
+  ];
   const engine = useFlowEngine();
   const api = (engine as any)?.context?.api ?? (engine as any)?.context?.apiClient;
 
