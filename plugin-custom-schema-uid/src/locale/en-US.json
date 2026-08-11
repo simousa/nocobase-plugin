@@ -1,0 +1,7 @@
+{
+  "Custom schema UID": "Custom schema UID",
+  "Used as the route (schema UID). Letters, numbers, hyphen and underscore only. Leave empty to auto-generate.": "Used as the route (schema UID). Letters, numbers, hyphen and underscore only. Leave empty to auto-generate.",
+  "e.g. custom-page-a123": "e.g. custom-page-a123",
+  "Custom schema UID can only contain letters, numbers, underscores and hyphens.": "Custom schema UID can only contain letters, numbers, underscores and hyphens.",
+  "Custom schema UID \"{{id}}\" is already in use, please choose another one.": "Custom schema UID \"{{id}}\" is already in use, please choose another one."
+}

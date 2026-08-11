@@ -1,0 +1,7 @@
+{
+  "Custom schema UID": "自定义 Schema UID",
+  "Used as the route (schema UID). Letters, numbers, hyphen and underscore only. Leave empty to auto-generate.": "作为路由（Schema UID）。仅允许字母、数字、连字符和下划线，留空则自动生成。",
+  "e.g. custom-page-a123": "例如 custom-page-a123",
+  "Custom schema UID can only contain letters, numbers, underscores and hyphens.": "自定义 Schema UID 只能包含字母、数字、下划线和中划线",
+  "Custom schema UID \"{{id}}\" is already in use, please choose another one.": "自定义 Schema UID \"{{id}}\" 已被占用，请更换"
+}

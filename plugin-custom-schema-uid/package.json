@@ -1,0 +1,17 @@
+{
+  "name": "@simo/plugin-custom-schema-uid",
+  "version": "0.1.0",
+  "displayName": "Custom Schema UID",
+  "displayName.zh-CN": "自定义页面UID （Schema UID）",
+  "description": "Allows specifying a custom schema UID (route id) when creating desktop menu items and routes in NocoBase, instead of the auto-generated random id.",
+  "description.zh-CN": "允许在 NocoBase 中创建桌面菜单项和路由时指定自定义的 schema uid（路由 id），而不是自动生成的随机 id。",
+  "author": "@simo",
+  "main": "dist/server/index.js",
+  "dependencies": {},
+  "peerDependencies": {
+    "@nocobase/client": "2.x",
+    "@nocobase/client-v2": "2.x",
+    "@nocobase/server": "2.x",
+    "@nocobase/test": "2.x"
+  }
+}
