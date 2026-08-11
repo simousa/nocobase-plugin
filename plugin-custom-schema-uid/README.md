@@ -8,6 +8,13 @@
 - NocoBase v2.x（`@nocobase/client-v2`）
 
 
+## 效果图
+
+<img src="../example_images/plugin-custom-schema-uid_001.jpg" alt="自定义页面UID示意图" width="800" />
+<img src="../example_images/plugin-custom-schema-uid_002.jpg" alt="自定义页面UID示意图" width="800" />
+
+
+
 ## 功能
 
 1. **添加菜单项（页面 / 流程页面）**：在「添加菜单项」弹窗的「菜单项名称」下方出现「自定义 Schema UID」输入框，填写后该页面路由即变为 `/v/admin/<your-schema-uid>`。

@@ -11,7 +11,7 @@
 | [`plugin-verification-code`](./plugin-verification-code/README.md) | 图片验证码 | 本地生成字符/算术验证码，保护登录/注册/忘记密码/公开表单，零第三方 API 依赖 | <img src="./example_images/plugin-verification-code_001.jpg"/> |
 | [`plugin-field-barcode`](./plugin-field-barcode/README.md) | 字段值条码显示 | 可将字段值显示为条形码/二维码 | <img src="./example_images/plugin-field-barcode_002.jpg"/> |
 | [`plugin-tab-page`](./plugin-tab-page/README.md) | 标签页（浏览器式多标签） | 在当前页面顶部新增一个标签页，点击某个标签即可切换到对应页面 | <img src="./example_images/plugin-tab-page_001.jpg"/> |
-
+| [`plugin-custom-schema-uid`](./plugin-custom-schema-uid/README.md) | 自定义页面UID（schemaUid） | 在新增菜单页面时，可以手动指定页面路由的 `schemaUid`，取代 NocoBase 默认生成的随机字符 /v/admin/<your-schema-uid> | <img src="./example_images/plugin-custom-schema-uid_001.jpg"/> |
 
 ## 备注
 
