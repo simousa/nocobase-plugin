@@ -45,11 +45,10 @@ import { TabBar, type TabController } from './TabBar';
 import { type MutationResult, tabStore } from './TabStore';
 
 /**
- * The tab bar is rendered as a `position: fixed` strip pinned right below the
- * top navigation bar and spanning the full viewport width.
- *
- * CRITICAL — portal target:
- *
+ * The tab bar is pinned directly below the top navigation bar. It remains in
+ * the application root so it spans both the sider and content area; the
+ * matching layout regions receive the bar height as top padding so no content
+ * is covered in the vertical direction.
  *
  * z-index hierarchy INSIDE `#nocobase-app-container` (all share the same
  * stacking context):
@@ -69,13 +68,8 @@ const slotClass = css`
   z-index: 200;
 `;
 const APP_CONTAINER_SELECTOR = '#nocobase-app-container';
-
-/**
- * Selector of the admin layout content container. We push it down by the tab
- * bar's height (via an inline `padding-top`) so the bar does not overlap the
- * page content. Restored when the bar is hidden/unmounted.
- */
 const CONTENT_CONTAINER_SELECTOR = '.nb-subpages-slot-without-header-and-side';
+const SIDER_SELECTOR = '.ant-layout-sider';
 
 /** Minimal surface the (lane-agnostic) tab bar needs from the host model. */
 interface TabHostProvider {
@@ -90,21 +84,15 @@ interface TabBarPortalProps {
 
 const TabBarPortal: React.FC<TabBarPortalProps> = ({ model }) => {
   const settings = useTabSettings();
-  // Subscribe to the active tab so the portal re-renders on route changes
-  // (the fixed bar itself does not depend on the host element, but TabBar
-  // reads the tab list / active key from the store and must refresh).
+  // Subscribe to the active tab so the portal re-renders on route changes.
   const { activeKey } = useTabState();
   const barRef = React.useRef<HTMLDivElement>(null);
 
   // ── Resolve the portal target: #nocobase-app-container ──────────────
   const resolveTarget = React.useCallback((): HTMLElement | null => {
     if (typeof document === 'undefined') return null;
-    // Method 1: traverse from the content element
     const host = model.getTabHost();
-    const fromHost = host?.closest<HTMLElement>(APP_CONTAINER_SELECTOR);
-    if (fromHost) return fromHost;
-    // Method 2: direct query
-    return document.querySelector<HTMLElement>(APP_CONTAINER_SELECTOR);
+    return host?.closest<HTMLElement>(APP_CONTAINER_SELECTOR) || document.querySelector<HTMLElement>(APP_CONTAINER_SELECTOR);
   }, [model]);
 
   const [portalTarget, setPortalTarget] = React.useState<HTMLElement | null>(null);
@@ -140,24 +128,35 @@ const TabBarPortal: React.FC<TabBarPortalProps> = ({ model }) => {
     });
   }, [model, resolveTarget]);
 
-  // ── Push the content area down by the bar's height ──────────────────
   useEffect(() => {
     if (!settings.enabled || !portalTarget) return;
-    const container = document.querySelector<HTMLElement>(CONTENT_CONTAINER_SELECTOR);
-    if (!container) return;
-    const previousPadding = container.style.paddingTop;
+
+    const regions = [
+      model.getTabHost(),
+      portalTarget.querySelector<HTMLElement>(CONTENT_CONTAINER_SELECTOR),
+      ...Array.from(portalTarget.querySelectorAll<HTMLElement>(SIDER_SELECTOR)),
+    ].filter((element): element is HTMLElement => !!element);
+    const uniqueRegions = Array.from(new Set(regions));
+    const previousPadding = uniqueRegions.map((element) => ({ element, value: element.style.paddingTop }));
+
     const sync = () => {
-      const h = barRef.current?.offsetHeight || 0;
-      container.style.paddingTop = h ? `${h}px` : previousPadding;
+      const height = barRef.current?.offsetHeight || 0;
+      uniqueRegions.forEach(({ style }, index) => {
+        style.paddingTop = height ? `${height}px` : previousPadding[index].value;
+      });
     };
+
     sync();
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(sync) : null;
-    ro?.observe(barRef.current!);
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(sync) : null;
+    if (barRef.current) observer?.observe(barRef.current);
+
     return () => {
-      ro?.disconnect();
-      container.style.paddingTop = previousPadding;
+      observer?.disconnect();
+      previousPadding.forEach(({ element, value }) => {
+        element.style.paddingTop = value;
+      });
     };
-  }, [settings.enabled, activeKey, portalTarget]);
+  }, [activeKey, model, portalTarget, settings.enabled]);
 
   if (!settings.enabled || !portalTarget) {
     return null;
