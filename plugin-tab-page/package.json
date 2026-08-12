@@ -1,6 +1,6 @@
 {
   "name": "@simo/plugin-tab-page",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "displayName": "Tab page (browser-like tabs)",
   "displayName.zh-CN": "标签页（浏览器式多标签）",
   "description": "Open menus and pages as browser-like tabs inside the current page instead of replacing it. Switching back to a tab restores the page it was showing. The tab size, the maximum number of tabs and the way tabs are closed are all configurable. Disabling the plugin restores the stock full-page navigation.",

@@ -68,7 +68,10 @@ const slotClass = css`
   z-index: 200;
 `;
 const APP_CONTAINER_SELECTOR = '#nocobase-app-container';
-const CONTENT_CONTAINER_SELECTOR = '.nb-subpages-slot-without-header-and-side';
+// The element that should carry the `calc(100dvh - var(--nb-header-height))`
+// budget once the fixed tab bar is injected. It is the slot's parent (the
+// "layer-above" content wrapper) — see the `TabBarPortal` effect below.
+const CONTENT_PARENT_SELECTOR = '.ant-layout-content.ant-pro-layout-content.ant-pro-layout-has-header';
 const SIDER_SELECTOR = '.ant-layout-sider';
 
 /** Minimal surface the (lane-agnostic) tab bar needs from the host model. */
@@ -131,29 +134,107 @@ const TabBarPortal: React.FC<TabBarPortalProps> = ({ model }) => {
   useEffect(() => {
     if (!settings.enabled || !portalTarget) return;
 
-    const regions = [
-      model.getTabHost(),
-      portalTarget.querySelector<HTMLElement>(CONTENT_CONTAINER_SELECTOR),
-      ...Array.from(portalTarget.querySelectorAll<HTMLElement>(SIDER_SELECTOR)),
-    ].filter((element): element is HTMLElement => !!element);
-    const uniqueRegions = Array.from(new Set(regions));
-    const previousPadding = uniqueRegions.map((element) => ({ element, value: element.style.paddingTop }));
+    // The slot the core hands us (`.nb-subpages-slot-without-header-and-side`)
+    // is the element that carries the full `height: calc(100dvh -
+    // var(--nb-header-height))`. Our fixed tab bar is portaled just under the
+    // header and overlaps that slot's top edge. Previously we added
+    // `padding-top` to the slot itself, but because the slot has a *fixed*
+    // height the padding only squeezed its scrollable child *under* the bar —
+    // i.e. the content was occluded in the y-direction.
+    //
+    // Fix (per the reported bug): move the height budget up one level. Give the
+    // wrapping `.ant-layout-content.ant-pro-layout-content.ant-pro-layout-has-header`
+    // the `calc(100dvh - var(--nb-header-height))` height plus the bar's
+    // `padding-top`, and let the slot simply fill its parent (`height: 100%`).
+    // The slot then starts *below* the fixed bar and the content is never
+    // covered.
+    const slot = model.getTabHost();
+    const contentParent =
+      slot?.closest<HTMLElement>(CONTENT_PARENT_SELECTOR) || slot?.parentElement || null;
+    const siders = Array.from(portalTarget.querySelectorAll<HTMLElement>(SIDER_SELECTOR));
+
+    // Capture the original inline styles the first time we touch each element,
+    // so the effect can be torn down cleanly. This is pure DOM compensation —
+    // the plugin never mutates NocoBase core source. Capturing is per-element
+    // and lazy so elements that mount late (the sider collapse button) are
+    // still handled and restored correctly.
+    const capturedEls = new Set<HTMLElement>();
+    const originals: Array<{ el: HTMLElement; props: Record<string, string> }> = [];
+    const capture = (el: HTMLElement, props: string[]) => {
+      if (capturedEls.has(el)) return;
+      const prev: Record<string, string> = {};
+      props.forEach((p) => (prev[p] = el.style.getPropertyValue(p)));
+      originals.push({ el, props: prev });
+      capturedEls.add(el);
+    };
+
+    // Watcher that re-runs `sync` when the sider collapse button appears. It is
+    // torn down as soon as the button has been positioned (or by the safety
+    // timeout below), so it never lingers.
+    let buttonObserver: MutationObserver | null = null;
 
     const sync = () => {
       const height = barRef.current?.offsetHeight || 0;
-      uniqueRegions.forEach(({ style }, index) => {
-        style.paddingTop = height ? `${height}px` : previousPadding[index].value;
+      if (!height) return;
+
+      if (contentParent) {
+        capture(contentParent, ['height', 'padding-top', 'box-sizing']);
+        // The `calc(100dvh - var(--nb-header-height))` budget now lives on the
+        // parent; `padding-top` reserves room for the fixed tab bar.
+        contentParent.style.height = 'calc(100dvh - var(--nb-header-height))';
+        contentParent.style.paddingTop = `${height}px`;
+        contentParent.style.boxSizing = 'border-box';
+      }
+      if (slot) {
+        capture(slot, ['height', 'padding-top']);
+        // Slot no longer carries its own fixed height — it fills the (already
+        // height-budgeted + padded) parent, so it starts below the tab bar.
+        slot.style.height = '100%';
+        slot.style.paddingTop = '';
+      }
+      siders.forEach((s) => {
+        capture(s, ['padding-top']);
+        s.style.paddingTop = `${height}px`;
       });
+
+      // The sider collapse button (`.ant-pro-sider-collapsed-button`) is pinned
+      // by core at `top: 64px`, which lands it on top of the tab bar. Push it
+      // down by the bar height so its top aligns with the bottom of the bar and
+      // nothing is occluded. Its `top` is relative to the full-height sider, so
+      // clearing the header *plus* the bar height places it just under the bar.
+      const collapsedButton = portalTarget.querySelector<HTMLElement>('.ant-pro-sider-collapsed-button');
+      if (collapsedButton) {
+        capture(collapsedButton, ['top']);
+        collapsedButton.style.top = `calc(var(--nb-header-height) + ${height}px)`;
+        buttonObserver?.disconnect();
+        buttonObserver = null;
+      }
     };
 
     sync();
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(sync) : null;
     if (barRef.current) observer?.observe(barRef.current);
 
+    // The collapse button may mount after this effect first runs — watch the
+    // container for it, then stop watching once it has been positioned.
+    buttonObserver =
+      typeof MutationObserver !== 'undefined' ? new MutationObserver(() => sync()) : null;
+    buttonObserver?.observe(portalTarget, { childList: true, subtree: true });
+    // Safety net: stop watching after 10s even if it never appears.
+    const buttonWatchTimeout = setTimeout(() => {
+      buttonObserver?.disconnect();
+      buttonObserver = null;
+    }, 10000);
+
     return () => {
       observer?.disconnect();
-      previousPadding.forEach(({ element, value }) => {
-        element.style.paddingTop = value;
+      buttonObserver?.disconnect();
+      clearTimeout(buttonWatchTimeout);
+      originals.forEach(({ el, props }) => {
+        Object.entries(props).forEach(([p, v]) => {
+          if (v) el.style.setProperty(p, v);
+          else el.style.removeProperty(p);
+        });
       });
     };
   }, [activeKey, model, portalTarget, settings.enabled]);
