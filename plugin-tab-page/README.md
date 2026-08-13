@@ -31,6 +31,7 @@
 <img src="../example_images/plugin-tab-page_003.jpg" alt="多标签示意图" width="800" />
 
 <img src="../example_images/plugin-tab-page_004.jpg" alt="多标签示意图" width="800" />
+
 ---
 
 ## 二、功能特性
@@ -211,3 +212,8 @@
 - **Q：刷新后标签没恢复？** A：确认 `restoreAfterRefresh` 已开启；恢复依赖浏览器 localStorage（按门户命名空间），清除浏览器数据或更换设备不会跨设备恢复。
 - **Q：弹窗/查看/筛选会多出标签？** A：不会。这些属于页面内 overlay 操作，标签栏只跟踪菜单级页面。
 - **Q：不同门户标签串了？** A：标签与默认/固定标签均按门户 `portalName` 隔离，切换门户只显示该门户的标签。
+
+---
+
+## 下载
+https://github.com/simousa/nocobase-plugin/releases
