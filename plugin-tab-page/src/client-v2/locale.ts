@@ -1,19 +1,13 @@
+// Auto-generated style locale helper (mirrors NocoBase plugin scaffold output).
 import { tExpr as _tExpr, useFlowEngine } from '@nocobase/flow-engine';
-// @ts-ignore
+// @ts-ignore - package.json import for plugin namespace
 import pkg from './../../package.json';
 
-/** Namespaces used by this plugin — the package name plus the shared `client`. */
-const NS = [pkg.name, 'client'];
-
-/** `t()` bound to the plugin namespace, for use inside FlowEngine components. */
 export function useT() {
   const engine = useFlowEngine();
-  return (str: string, options?: any) => engine.context.t(str, { ns: NS, ...options }) as unknown as string;
+  return (str: string) => engine.context.t(str, { ns: [pkg.name, 'client'] });
 }
 
-/** Build a `{{t('...')}}`-style expression usable in Formily schemas. */
 export function tExpr(key: string) {
-  return _tExpr(key, { ns: NS });
+  return _tExpr(key, { ns: [pkg.name, 'client'] });
 }
-
-export { NS as TAB_PAGE_I18N_NS };

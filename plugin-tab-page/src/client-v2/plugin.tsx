@@ -1,74 +1,109 @@
-import { Application, Plugin } from '@nocobase/client-v2';
-import { SETTINGS_PAGE_KEY } from '../constants';
-import { loadGlobalConfig, getEffectiveSettings, subscribeSettings } from './tab-page/settings';
-import { tabStore } from './tab-page/TabStore';
-import { TabPageAdminLayoutModel } from './tab-page/TabPageAdminLayoutModel';
+import { Plugin, Application } from '@nocobase/client-v2';
+import { mountMultiTabs, patchHistory } from './utils/dom';
+import {
+  getPortalKey,
+  getAppBasename,
+  setPortalApp,
+  setPortalRecords,
+  PORTAL_RECORDS_UPDATED,
+  type PortalRecord,
+} from './utils/portal';
 
-export class PluginTabPageClient extends Plugin<any, Application> {
-  /**
-   * Unsubscribe for the "tab mode switched off ⇒ clear stale tabs" watcher.
-   * Kept on the instance so it can be torn down if the plugin is ever unloaded.
-   */
-  private unsubscribeEnabledWatch?: () => void;
-
+export class PluginMultiTabsClientV2 extends Plugin<any, Application> {
   async load() {
-    // Override the admin layout host model *by name*. The build-in plugin
-    // registers `AdminLayoutModel` earlier, so this late registration wins and
-    // turns the whole `/admin` shell into a tab strip. Disabling the plugin
-    // simply stops this bundle from loading, restoring stock navigation.
-    this.flowEngine.registerModels({ AdminLayoutModel: TabPageAdminLayoutModel });
+    // 1. Inject the multi-tab bar (pure DOM insertion + isolated React root).
+    //    No React Provider is used, per NocoBase plugin constraints.
+    const apiClient = this.app.apiClient;
+    // Share the Application instance so utils/portal.ts can read the basename via the
+    // framework's own `app.router.getBasename()` method (never the `.basename` *property*,
+    // which can be undefined on the plugin instance and throw). This is the exact API
+    // NocoBase's multi-portal plugin uses — the most stable basename source.
+    setPortalApp(this.app);
+    // Navigation + basename use `app.router` (canonically available during plugin load
+    // in NocoBase v3). Optional chaining keeps this safe even if the router isn't ready.
+    const navigate = (to: string) => this.app.router?.navigate?.(to);
+    // getAppBasename() reads app.router.getBasename() internally (method, never the
+    // `.basename` property) and falls back to a URL derivation — always a string.
+    const getBasename = (): string => getAppBasename();
+    // Resolve the current portal (门户) by its NocoBase `portalName` (fetched from
+    // multiPortals:listEnabled) — stable, basename-independent, unique per portal.
+    const getPortalKeyForBar = () => getPortalKey(this.app.name);
 
-    // Warm the server-side global defaults *before* restoring the tab list:
-    // `restore()` consults `restoreTabsOnReload`, which is only known once the
-    // server has answered. Awaiting here guarantees the admin's choice is
-    // respected. `loadGlobalConfig` never throws (it falls back to the
-    // built-in defaults on error), so this never blocks boot on failure.
-    const api = (this.app as any).apiClient ?? (this.flowEngine as any)?.context?.api;
-    if (api) {
-      await loadGlobalConfig(api);
-    }
-    tabStore.restore();
+    patchHistory(() => window.dispatchEvent(new CustomEvent('simo:route-changed')));
 
-    // When the tab mode is switched off at runtime (admin toggle, or a user
-    // override of `enabled`), drop every tab and the persisted sessionStorage
-    // payload. Otherwise re-enabling the mode would surface tabs whose pages
-    // may already have been closed/navigated away from while the mode was off.
-    let lastEnabled = getEffectiveSettings().enabled;
-    this.unsubscribeEnabledWatch = subscribeSettings(() => {
-      const next = getEffectiveSettings().enabled;
-      if (lastEnabled && !next) {
-        tabStore.reset();
-      }
-      lastEnabled = next;
+    mountMultiTabs({
+      apiClient,
+      navigate,
+      getBasename,
+      getPortalKey: getPortalKeyForBar,
+      t: (s: string) => this.t(s) as unknown as string,
     });
 
-    // Settings page (global defaults + personal preferences).
+    // 2. Best-effort: load the multi-portal records so portalName-based resolution works.
+    //    Fires after mount so the bar appears immediately; when records arrive we refresh
+    //    the bar's portal key (PORTAL_RECORDS_UPDATED). If the multi-portal plugin is
+    //    absent / no permission, resolution gracefully falls back to the app name.
+    void this.loadPortalRecords();
+
+    // 2. Settings pages.
     this.pluginSettingsManager.addMenuItem({
-      key: SETTINGS_PAGE_KEY,
-      title: this.t('Tab page') as unknown as string,
+      key: 'multi-tabs',
+      title: this.t('Multi-tabs'),
       icon: 'TagOutlined',
     });
     this.pluginSettingsManager.addPageTabItem({
-      menuKey: SETTINGS_PAGE_KEY,
-      key: 'index',
-      title: this.t('Settings') as unknown as string,
-      componentLoader: () => import('./pages/TabPageSettingsPage'),
-    });
-
-    // A *hidden* second page whose only purpose is to surface a distinct ACL
-    // snippet (`pm.tab-page.global`, shown in the role permission tree as
-    // 标签页 → 全局配置) that gates writes to the global defaults. Hidden so it
-    // does not appear as a second tab in the settings UI — yet it still shows up
-    // in the "插件设置" permission tree because the tree enumerates every page
-    // item regardless of `hidden`.
-    this.pluginSettingsManager.addPageTabItem({
-      menuKey: SETTINGS_PAGE_KEY,
+      menuKey: 'multi-tabs',
       key: 'global',
-      title: this.t('Global config') as unknown as string,
-      hidden: true,
-      componentLoader: () => import('./pages/TabPageSettingsPage'),
+      title: this.t('Global default'),
+      componentLoader: () => import('./components/settings/GlobalConfigPage'),
     });
+    this.pluginSettingsManager.addPageTabItem({
+      menuKey: 'multi-tabs',
+      key: 'personal',
+      title: this.t('Personal preferences'),
+      componentLoader: () => import('./components/settings/PersonalConfigPage'),
+    });
+    // Portal default/fixed tabs — same level as global/personal, with its own route.
+    // Writes the separate `portal_tab` column, gated by `pm.multi-tabs.portal`.
+    this.pluginSettingsManager.addPageTabItem({
+      menuKey: 'multi-tabs',
+      key: 'portal',
+      title: this.t('Portal default/fixed tabs'),
+      componentLoader: () => import('./components/settings/PortalConfigPage'),
+    });
+  }
+
+  /**
+   * Fetch the multi-portal records (`multiPortals:listEnabled`) and cache them so the
+   * bar can resolve the current portal by its NocoBase `portalName`. Mirrors the exact
+   * request the multi-portal plugin itself makes (skipAuth/skipNotify, since this may run
+   * before auth settles). Best-effort: a missing multi-portal plugin / no permission simply
+   * leaves the records empty and the bar falls back to the app name.
+   */
+  private async loadPortalRecords() {
+    try {
+      const res = await this.app.apiClient.request({
+        url: 'multiPortals:listEnabled',
+        method: 'get',
+        skipAuth: true,
+        skipNotify: true,
+        params: { pageSize: 200 },
+      });
+      const items = (res?.data?.data as any[]) || [];
+      const records: PortalRecord[] = items.map((it: any) => ({
+        uid: it.uid,
+        portalName: it.portalName,
+        routePath: it.routePath,
+        title: it.title,
+        enabled: it.enabled,
+      }));
+      setPortalRecords(records);
+      // Let the bar re-resolve its portal key now that records are available.
+      window.dispatchEvent(new CustomEvent(PORTAL_RECORDS_UPDATED));
+    } catch {
+      /* multi-portal plugin absent or no permission — single-portal fallback */
+    }
   }
 }
 
-export default PluginTabPageClient;
+export default PluginMultiTabsClientV2;

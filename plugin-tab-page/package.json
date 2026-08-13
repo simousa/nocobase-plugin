@@ -1,11 +1,11 @@
 {
   "name": "@simo/plugin-tab-page",
-  "version": "0.1.3",
-  "displayName": "Tab page (browser-like tabs)",
+  "version": "0.2.0",
+  "displayName": "Tab page (browser-like Multi Tabs)",
   "displayName.zh-CN": "标签页（浏览器式多标签）",
   "description": "Open menus and pages as browser-like tabs inside the current page instead of replacing it. Switching back to a tab restores the page it was showing. The tab size, the maximum number of tabs and the way tabs are closed are all configurable. Disabling the plugin restores the stock full-page navigation.",
   "description.zh-CN": "打开菜单或页面时不再整页跳转，而是像浏览器一样在当前页面顶部新增一个标签页；点回某个标签即可切换到对应页面。标签大小、数量上限与关闭方式均可配置。禁用插件后立即恢复 NocoBase 原生的整页跳转行为。",
-  "main": "dist/server/index.js",
+  "main": "./dist/server/index.js",
   "dependencies": {
     "react-i18next": "^11.18.6"
   },
