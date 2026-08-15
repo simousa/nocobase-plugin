@@ -21,6 +21,8 @@ export type MultiTabStyle = 'card' | 'rounded' | 'underline';
 export type MaxBehavior = 'lru' | 'block';
 /** When the close button is visible */
 export type CloseButtonMode = 'always' | 'hover' | 'active';
+/** Where the close button sits on the tab */
+export type CloseButtonPosition = 'right-center' | 'top-right';
 /** Where the tab bar is mounted */
 export type BarPosition = 'page' | 'sidebar';
 
@@ -57,6 +59,8 @@ export interface MultiTabConfig {
   showRefresh: boolean;
   /** When the per-tab close button is shown */
   closeButtonMode: CloseButtonMode;
+  /** Where the close button sits: right-center (same line as text, current behavior) or top-right corner */
+  closeButtonPosition: CloseButtonPosition;
   /** Close a tab with the mouse middle button */
   middleClickClose: boolean;
   /** Right-click context menu (pin / close others / close left / close right) */
@@ -109,6 +113,7 @@ export const DEFAULT_CONFIG: MultiTabConfig = {
   showMenuIcon: true,
   showRefresh: true,
   closeButtonMode: 'always',
+  closeButtonPosition: 'right-center',
   middleClickClose: true,
   contextMenu: true,
   pinFirstTab: false,
@@ -133,6 +138,7 @@ export const PERSONALIZABLE_FIELDS: (keyof MultiTabConfig)[] = [
   'showMenuIcon',
   'showRefresh',
   'closeButtonMode',
+  'closeButtonPosition',
   'middleClickClose',
   'contextMenu',
   'pinFirstTab',

@@ -74,27 +74,63 @@ function hasGlobalInitialTabs(cfg: MultiTabConfig): boolean {
 }
 
 /**
- * Read the title + icon HTML from the currently selected menu item (the menu entry
- * that corresponds to the active route). This makes each tab show the *real* menu
- * label and icon instead of a fixed/guessed one.
+ * Read the title + icon HTML from a single menu item element. Prefer the item's OWN
+ * icon; child (secondary) menu items frequently have no icon of their own, so when
+ * none is found we walk UP to the nearest parent submenu and read its title icon —
+ * that gives the secondary-menu icon the user expects on the tab (instead of a blank
+ * icon slot).
+ */
+function readItemMeta(el: HTMLElement): { title: string; iconHtml?: string } {
+  const titleEl = el.querySelector('.ant-menu-title-content');
+  const title = (titleEl?.textContent || el.textContent || '').trim();
+  let iconEl = el.querySelector('.anticon');
+  if (!iconEl) {
+    const submenu = el.closest('.ant-menu-submenu') as HTMLElement | null;
+    if (submenu) iconEl = submenu.querySelector('.ant-menu-submenu-title .anticon');
+  }
+  const iconHtml = iconEl ? iconEl.outerHTML : undefined;
+  return { title, iconHtml };
+}
+
+/**
+ * Read the title + icon HTML from the currently selected menu item (legacy fallback
+ * used only when no href-matched item is found — see getMenuMetaForPath).
  */
 function getActiveMenuMeta(): { title?: string; iconHtml?: string } | null {
   const selected = document.querySelector('.ant-menu-item-selected') as HTMLElement | null;
   if (!selected) return null;
-  const titleEl = selected.querySelector('.ant-menu-title-content');
-  const title = (titleEl?.textContent || selected.textContent || '').trim();
-  // Prefer the item's OWN icon. Child (secondary) menu items frequently have no icon
-  // of their own, so when none is found we walk UP to the nearest parent submenu and
-  // read its title icon — that gives the secondary-menu icon the user expects on the
-  // tab (instead of a blank icon slot).
-  let iconEl = selected.querySelector('.anticon');
-  if (!iconEl) {
-    const submenu = selected.closest('.ant-menu-submenu') as HTMLElement | null;
-    if (submenu) iconEl = submenu.querySelector('.ant-menu-submenu-title .anticon');
-  }
-  const iconHtml = iconEl ? iconEl.outerHTML : undefined;
+  const { title, iconHtml } = readItemMeta(selected);
   if (!title && !iconHtml) return null;
   return { title: title || undefined, iconHtml };
+}
+
+/**
+ * Resolve the menu title/icon for a SPECIFIC tab path by matching the tab's path
+ * against each menu item's own link (`<a href>`). This is what fixes the
+ * "tab title misalignment on rapid switching" bug (req #3): previously the bar took
+ * the *globally selected* menu item and applied its title to the active tab, so when
+ * the menu's selection lagged the route change (or any unrelated menu mutation fired
+ * the observer) the active tab briefly inherited the WRONG (previous) menu label.
+ * Matching each tab by its own path means the label is decoupled from which menu item
+ * happens to be highlighted at that instant — the title is always the one that belongs
+ * to that route. Falls back to the selected-item lookup when no href match exists.
+ */
+function getMenuMetaForPath(
+  full: string,
+  basename: string,
+): { title?: string; iconHtml?: string } | null {
+  const target = normalizeTabPath(full, basename);
+  const items = Array.from(document.querySelectorAll('.ant-menu-item')) as HTMLElement[];
+  for (const el of items) {
+    const link = el.querySelector('a');
+    const href = (link?.getAttribute('href') || '').trim();
+    if (href && normalizeTabPath(href, basename) === target) {
+      const { title, iconHtml } = readItemMeta(el);
+      if (title || iconHtml) return { title: title || undefined, iconHtml };
+    }
+  }
+  // No href-matched item (e.g. menu items without links) — keep the legacy behavior.
+  return getActiveMenuMeta();
 }
 
 /** Render the icon for a tab item: DOM HTML (auto tabs) or an antd icon by name (configured tabs). */
@@ -258,19 +294,15 @@ export function MultiTabsBar(props: MountProps) {
   /* ---------------- Route change → open / activate tab --------------- */
 
   /**
-   * Mirror the currently selected menu entry's title/icon onto the active tab.
-   *
-   * Referencing old-src's `routeRepository.subscribe` intent: instead of trusting a
-   * single 60ms snapshot (which races the menu's selection animation and lets the
-   * tab label briefly mismatch the menu), we keep re-reading the selected item
-   * whenever the menu selection settles. A MutationObserver in the effect below
-   * drives this on every selection change, so switching tabs always ends up with
-   * the correct label.
+   * Mirror the menu title/icon for the active tab. Uses a PATH-based lookup
+   * (getMenuMetaForPath) instead of the globally-selected menu item, so the label
+   * can never be corrupted by the menu's selection lagging the route change, nor by
+   * unrelated menu mutations firing the observer (req #3).
    */
   const syncActiveTabFromMenu = useCallback(() => {
     const full = activePathRef.current;
     if (!full) return;
-    const meta = getActiveMenuMeta();
+    const meta = getMenuMetaForPath(full, getBasename());
     if (!meta || (!meta.title && !meta.iconHtml)) return;
     setOpenTabs((prev) => {
       let changed = false;
@@ -284,7 +316,7 @@ export function MultiTabsBar(props: MountProps) {
       });
       return changed ? next : prev;
     });
-  }, []);
+  }, [getBasename]);
 
   const refreshMeta = useCallback(
     (full: string) => {
@@ -720,6 +752,7 @@ export function MultiTabsBar(props: MountProps) {
       className="simo-multi-tabs-inner"
       data-style={config.style}
       data-close-mode={config.closeButtonMode}
+      data-close-position={config.closeButtonPosition}
       style={{
         flex: 1,
         minWidth: 0,
@@ -757,7 +790,7 @@ export function MultiTabsBar(props: MountProps) {
            so a missing icon reserves NO space — the title starts flush-left (req #1). */
         .simo-multi-tabs .simo-tab-label { display:flex; align-items:center; width:100%; box-sizing:border-box; }
         .simo-multi-tabs .simo-tab-icon { display:inline-flex; align-items:center; justify-content:center; font-size:14px; flex:0 0 auto; margin-right:6px; }
-        .simo-multi-tabs .simo-tab-title { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .simo-multi-tabs .simo-tab-title { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:8px; }
         /* pin + close share a right-aligned group so the pin icon always stays inside the
            tab at the right edge, regardless of the title length (req #1) */
         .simo-multi-tabs .simo-tab-right { flex:0 0 auto; margin-left:auto; display:inline-flex; align-items:center; gap:6px; }
@@ -820,6 +853,22 @@ export function MultiTabsBar(props: MountProps) {
         /* close button visibility modes (old-src: closeButtonVisibility) */
         .simo-multi-tabs [data-close-mode="hover"] .ant-tabs-tab:not(:hover) .simo-tab-close { display: none; }
         .simo-multi-tabs [data-close-mode="active"] .ant-tabs-tab:not(.ant-tabs-tab-active) .simo-tab-close { display: none; }
+
+        /* close button POSITION (old-src: closeButtonPosition) */
+        /* default 'right-center' (data-close-position omitted or 'right-center'): the close
+           button sits in the right-aligned group, vertically centered on the same line as the
+           title text. The 8px margin-right on .simo-tab-title guarantees a gap from the title
+           even when the title is truncated (issue #2). */
+        /* 'top-right': the close button detaches from the right group and pins to the tab's
+           top-right corner (like a browser tab), independent of the title's vertical center.
+           The pin icon stays in the right group (right-center). */
+        .simo-multi-tabs [data-close-position="top-right"] .ant-tabs-tab { position: relative; }
+        .simo-multi-tabs [data-close-position="top-right"] .ant-tabs-tab-btn { padding-right: 4px; }
+        .simo-multi-tabs [data-close-position="top-right"] .simo-tab-close {
+          position: absolute; top: 2px; right: 2px; margin: 0; flex: none;
+          width: 16px; height: 16px; border-radius: 50%;
+        }
+        .simo-multi-tabs [data-close-position="top-right"] .simo-tab-close:hover { background: rgba(0,0,0,0.10); }
       `}</style>
       <Tabs
         type="editable-card"

@@ -48,6 +48,10 @@ export default function PersonalConfigPage() {
     { label: t('On hover'), value: 'hover' },
     { label: t('Only current tab'), value: 'active' },
   ];
+  const closeButtonPositionOptions = [
+    { label: t('Right, centered'), value: 'right-center' },
+    { label: t('Top right corner'), value: 'top-right' },
+  ];
   const barPositionOptions = [
     { label: t('Entire page'), value: 'page' },
     { label: t('Right of sidebar'), value: 'sidebar' },
@@ -196,6 +200,9 @@ export default function PersonalConfigPage() {
         </Form.Item>
         <Form.Item name="closeButtonMode" label={t('Show close button')} tooltip={t(TIP.closeButtonMode)}>
           <Select options={closeButtonOptions} />
+        </Form.Item>
+        <Form.Item name="closeButtonPosition" label={t('Close button position')} tooltip={t(TIP.closeButtonPosition)}>
+          <Select options={closeButtonPositionOptions} />
         </Form.Item>
         <Form.Item name="middleClickClose" label={t('Middle-click to close')} valuePropName="checked" tooltip={t(TIP.middleClickClose)}>
           <Switch />
