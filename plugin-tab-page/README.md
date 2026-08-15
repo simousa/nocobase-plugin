@@ -1,4 +1,4 @@
-# @simo/plugin-multi-tabs
+# @simo/plugin-tab-page
 
 > NocoBase 多标签栏插件（client-v2）。为 NocoBase 后台增加类浏览器的多标签栏：支持全局默认配置、按门户设置默认/固定标签、以及每个用户在浏览器内的个人偏好。
 
@@ -8,17 +8,17 @@
 
 在 NocoBase 中，页面通常以**整页跳转**的方式切换，用户难以在多个页面之间快速往返。本插件在页面顶部（或侧边栏右侧）注入一个多标签栏，点击左侧菜单即在标签栏打开对应页面，支持关闭、固定、刷新、右键菜单等浏览器式交互。
 
-插件把配置拆成 **三套相互隔离的作用域**，避免权限与数据互相污染：
+插件把配置拆成 **三套相互隔离的作用域**
 
-| 作用域 | 配置入口（设置菜单 → Multi-tabs） | 存储位置 | 生效范围 | 权限片段 |
+| 作用域 | 配置入口（设置菜单 → 多标签页） | 存储位置 | 生效范围 | 权限片段 |
 | --- | --- | --- | --- | --- |
-| 全局默认（Global default） | `全局默认` | 数据表 `simoTabPageConfig.options` | 所有用户 | `pm.multi-tabs.global` |
-| 个人偏好（Personal preferences） | `个人偏好` | 浏览器 localStorage（按门户命名空间） | 仅当前用户本人 | `pm.multi-tabs.personal` |
-| 门户默认/固定标签（Portal） | `门户默认/固定标签` | 数据表 `simoTabPageConfig.portal_tab` | 对应门户的全部用户 | `pm.multi-tabs.portal` |
+| 全局默认（Global default） | `全局默认` | 数据表 `simoTabPageConfig.options` | 所有用户 | `pm.多标签页.global` |
+| 个人偏好（Personal preferences） | `个人偏好` | 浏览器 localStorage（按门户命名空间） | 仅当前用户本人 | `pm.多标签页.personal` |
+| 门户默认/固定标签（Portal） | `门户默认/固定标签` | 数据表 `simoTabPageConfig.portal_tab` | 对应门户的全部用户 | `pm.多标签页.portal` |
 
 **优先级**：个人偏好（浏览器本地）> 全局默认；门户默认/固定标签只覆盖「默认标签 / 固定标签」两类，绝不覆盖个人偏好的样式、高度、行为等设置。
 
-> 标签栏**只跟踪菜单级页面**。在页面内点击「查看」、打开弹窗/抽屉、应用筛选块、切换页内 `?tab=` 子标签等操作**不会**新建标签（避免无意义的标签堆积）。
+> 标签栏**只跟踪菜单级页面**。在页面内点击「查看」、打开弹窗/抽屉不会新建标签，但是子标签会新建标签。
 
 ---
 
@@ -41,7 +41,7 @@
 - 首标签固定（`pinFirstTab`）：固定第一个打开的页面。
 - 刷新恢复（`restoreAfterRefresh`）：刷新后恢复之前打开的标签（依赖浏览器 localStorage）。
 - 样式自定义：`card` / `rounded` / `underline` 三种外观，宽度与高度可调。
-- 关闭交互：`closeButtonMode`（常显/悬停/激活时）、中键关闭、右键菜单。
+- 关闭交互：标签关闭方式`closeButtonMode`（常显/悬停/激活时）、关闭按钮位置`closeButtonPosition`（右边居中/右上角）、中键关闭、右键菜单。
 - 标签页挂载位置：`page`（页面顶部整宽） / `sidebar`（侧边栏右侧）。
 - 按门户隔离：不同门户拥有各自独立的默认/固定标签与本地标签状态。
 
@@ -49,10 +49,10 @@
 
 ## 三、安装与启用
 
-1. 构建插件（`yarn build` 或 `pnpm build`），产物在 `dist/`。
-2. 在 NocoBase 插件管理中启用 `@simo/plugin-multi-tabs`。
-3. 启用后插件会**自动自愈**数据（见第七节），无需手工建表或迁移。
-4. 在「设置 → Multi-tabs」下按需配置全局默认、门户默认/固定标签、个人偏好。
+1. 构建插件（`yarn build`），产物在 `dist/`。
+2. 在 NocoBase 插件管理中启用 `@simo/plugin-tab-page`。
+
+3. 在「设置 → 多标签页」下按需配置全局默认、门户默认/固定标签、个人偏好。
 
 ---
 
@@ -62,16 +62,16 @@
 
 **① 全局默认（Global default）**
 - 使用场景：管理员想给**所有用户**统一一套标签栏外观与行为（样式、高度、关闭策略、是否允许个人化、刷新是否恢复等）。
-- 设置方法：设置 → Multi-tabs → `全局默认`，修改后点「保存」。写入数据表 `simoTabPageConfig.options`。
+- 设置方法：设置 → 多标签页 → `全局默认`，修改后点「保存」。写入数据表 `simoTabPageConfig.options`。
 
 **② 个人偏好（Personal preferences）**
 - 使用场景：最终用户希望在自己浏览器内微调标签栏（例如把高度调大、改成 underline 样式、开启中键关闭），**不影响其他用户**。
-- 设置方法：设置 → Multi-tabs → `个人偏好`，修改后点「保存」。仅存浏览器 localStorage，随浏览器/设备生效。
+- 设置方法：设置 → 多标签页 → `个人偏好`，修改后点「保存」。仅存浏览器 localStorage，随浏览器/设备生效。
 - 前提：全局默认中 `allowPersonalization` 必须为开启（默认开启），否则个人偏好页不可编辑。
 
 **③ 门户默认/固定标签（Portal default/fixed tabs）**
 - 使用场景：系统部署了多门户（如 `/v/admin` 与 `/x/admin` 是两个不同门户），希望**每个门户**有不同的默认打开页与常驻固定标签，且对该门户所有用户统一生效。
-- 设置方法：设置 → Multi-tabs → `门户默认/固定标签`，在下拉中选择门户（按 NocoBase 多门户的 `portalName` 识别），配置「默认标签 / 固定标签」后保存。写入数据表 `simoTabPageConfig.portal_tab`。
+- 设置方法：设置 → 多标签页 → `门户默认/固定标签`，在下拉中选择门户（按 NocoBase 多门户的 `portalName` 识别），配置「默认标签 / 固定标签」后保存。写入数据表 `simoTabPageConfig.portal_tab`。
 - 注意：下拉自动列出全部门户，无需「使用当前门户」按钮；标签路径只需是站内以 `/` 开头的路由，无需拼接部署子路径或域名。
 
 ### 4.2 全局默认配置项（逐项说明）
@@ -93,6 +93,7 @@
 | `showMenuIcon` | boolean | 是否在标签上显示菜单图标。 | 全局默认 / 个人偏好 |
 | `showRefresh` | boolean | 是否在标签栏右侧显示刷新按钮。 | 全局默认 / 个人偏好 |
 | `closeButtonMode` | `always` / `hover` / `active` | 关闭按钮显示时机：常显 / 悬停时 / 激活标签上。 | 全局默认 / 个人偏好 |
+| `closeButtonPosition` | `right-center` / `top-right` | 关闭按钮位置：右边居中（与标题文字同一水平线，插件原默认）/ 右上角（定位到标签的右上角，类似浏览器标签页；PIN 图标仍居右）。 | 全局默认 / 个人偏好 |
 | `middleClickClose` | boolean | 是否支持鼠标中键点击关闭标签。 | 全局默认 / 个人偏好 |
 | `contextMenu` | boolean | 是否启用右键菜单（固定 / 关闭左 / 关闭右 / 关闭其他 / 关闭全部）。 | 全局默认 / 个人偏好 |
 | `pinFirstTab` | boolean | 固定第一个打开的页面（不可关闭）。若门户已配置默认/固定标签则该项不生效。 | 全局默认 / 个人偏好 |
@@ -123,7 +124,7 @@
 
 ### 4.4 个人偏好可自定义字段
 
-个人偏好可覆盖以下 15 项（不含默认/固定标签，因标签由管理员按门户统一配置）：`style`、`fixedWidth`、`fixedTabWidth`、`minTabWidth`、`maxTabWidth`、`tabHeight`、`roundedRadius`、`showMenuIcon`、`showRefresh`、`closeButtonMode`、`middleClickClose`、`contextMenu`、`pinFirstTab`、`keepAtLeastOne`、`barPosition`。
+个人偏好可覆盖以下 16 项（不含默认/固定标签，因标签由管理员按门户统一配置）：`style`、`fixedWidth`、`fixedTabWidth`、`minTabWidth`、`maxTabWidth`、`tabHeight`、`roundedRadius`、`showMenuIcon`、`showRefresh`、`closeButtonMode`、`closeButtonPosition`、`middleClickClose`、`contextMenu`、`pinFirstTab`、`keepAtLeastOne`、`barPosition`。
 
 ---
 
@@ -157,6 +158,7 @@
   "showMenuIcon": true,
   "showRefresh": true,
   "closeButtonMode": "always",
+  "closeButtonPosition": "right-center",
   "middleClickClose": true,
   "contextMenu": true,
   "pinFirstTab": false,
