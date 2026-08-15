@@ -21,6 +21,7 @@ export const TIP = {
   showMenuIcon: 'tipShowMenuIcon',
   showRefresh: 'tipShowRefresh',
   closeButtonMode: 'tipCloseButtonMode',
+  closeButtonPosition: 'tipCloseButtonPosition',
   middleClickClose: 'tipMiddleClickClose',
   contextMenu: 'tipContextMenu',
   pinFirstTab: 'tipPinFirstTab',
