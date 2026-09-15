@@ -1,6 +1,6 @@
 {
   "name": "@simo/plugin-custom-schema-uid",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "displayName": "Custom Schema UID",
   "displayName.zh-CN": "自定义页面UID （Schema UID）",
   "description": "Allows specifying a custom schema UID (route id) when creating desktop menu items and routes in NocoBase, instead of the auto-generated random id.",
