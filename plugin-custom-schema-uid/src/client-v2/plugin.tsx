@@ -1,5 +1,6 @@
 import { Application, Plugin } from '@nocobase/client-v2';
 import { CustomSchemaUidMenuItemModel } from './custom-schema-uid/CustomSchemaUidMenuItemModel';
+import { CustomSchemaUidPageTabModel } from './custom-schema-uid/CustomSchemaUidPageTabModel';
 
 export class PluginCustomSchemaUidClientV2 extends Plugin<any, Application> {
   async load() {
@@ -15,6 +16,7 @@ export class PluginCustomSchemaUidClientV2 extends Plugin<any, Application> {
      */
     this.flowEngine.registerModels({
       AdminLayoutMenuItemModel: CustomSchemaUidMenuItemModel,
+      RootPageTabModel: CustomSchemaUidPageTabModel,
     });
   }
 }
